@@ -8,13 +8,20 @@
     <cargoProject FILE="$PROJECT_DIR$/Reiden-hub/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="dioxus" />
+    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="dioxus">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reiden-hub/assets/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/assets/main.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reiden-hub/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/src/main.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:dev" />
+  <component name="Git.Rebase.Settings">
+    <option name="NEW_BASE" value="master" />
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -39,7 +46,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.rust.reset.selective.auto.import&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/User/Reiden Hub/Reiden-hub&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -100,7 +107,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1744544964723</updated>
-      <workItem from="1744544965811" duration="3749000" />
+      <workItem from="1744544965811" duration="5230000" />
     </task>
     <task id="LOCAL-00001" summary="dioxus">
       <option name="closed" value="true" />
@@ -118,7 +125,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744550800070</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="dioxus">
+      <option name="closed" value="true" />
+      <created>1744551011051</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1744551011051</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

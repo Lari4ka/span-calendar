@@ -1,4 +1,6 @@
+use dioxus::html::completions::CompleteWithBraces::{button, div};
 use dioxus::logger::tracing;
+use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -11,17 +13,28 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    rsx! { "Reiden Hub" }
+    rsx! {
+        reiden_app { expy: "Acheron" }
+    }
 }
 
 #[component]
-fn reiden_app(props: ReidenAppProps) -> Element {
-    tracing::info!("expy: {expy}");
-    todo!()
+fn reiden_app(expy: String) -> Element {
+    rsx! {
+        div { "sus" }
+        button {
+            onclick: move |_| {
+                info!("sussed")
+
+            },
+            "sus me",
+        }
+        "expy: {expy}"
+    }
 }
 
 #[derive(Props, PartialEq, Clone)]
-struct ReidenAppProps {
+pub struct ReidenAppProps {
     expy: String,
 }
 
