@@ -8,9 +8,7 @@
     <cargoProject FILE="$PROJECT_DIR$/Reiden-hub/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="dioxus">
-      <change beforePath="$PROJECT_DIR$/Reiden-hub/assets/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/assets/main.css" afterDir="false" />
-    </list>
+    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="dioxus" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -105,7 +103,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1744544964723</updated>
-      <workItem from="1744544965811" duration="5606000" />
+      <workItem from="1744544965811" duration="5956000" />
     </task>
     <task id="LOCAL-00001" summary="dioxus">
       <option name="closed" value="true" />
@@ -147,7 +145,31 @@
       <option name="project" value="LOCAL" />
       <updated>1744552743283</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="dioxus">
+      <option name="closed" value="true" />
+      <created>1744552847587</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1744552847587</updated>
+    </task>
+    <task id="LOCAL-00007" summary="dioxus">
+      <option name="closed" value="true" />
+      <created>1744553000021</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1744553000021</updated>
+    </task>
+    <task id="LOCAL-00008" summary="dioxus">
+      <option name="closed" value="true" />
+      <created>1744553123669</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1744553123669</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
