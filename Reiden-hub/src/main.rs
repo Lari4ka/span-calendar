@@ -25,7 +25,6 @@ fn reiden_app(expy: String) -> Element {
         button {
             onclick: move |_| {
                 info!("sussed")
-
             },
             "sus me",
         }
