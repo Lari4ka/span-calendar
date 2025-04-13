@@ -29,6 +29,7 @@ fn reiden_app(expy: String) -> Element {
             "sus me",
         }
         "expy: {expy}"
+        "expy: {expy}"
     }
 }
 
