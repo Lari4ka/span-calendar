@@ -8,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 dioxus = { version = "0.6.0", features = [] }
+time = { version = "0.3.41", features = ["macros"] }
 
 [features]
 default = ["web"]

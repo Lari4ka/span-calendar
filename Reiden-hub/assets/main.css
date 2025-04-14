@@ -1,9 +1,12 @@
 /* App-wide styling */
 body {
-    background-color: #0f1116;
-    color: #ffffff;
+    background-color: #2fe878;
+    color: #215963;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 20px;
+}
+#buttonus {
+    background-color: aqua;
 }
 
 

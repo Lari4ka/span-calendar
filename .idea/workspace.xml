@@ -8,7 +8,13 @@
     <cargoProject FILE="$PROJECT_DIR$/Reiden-hub/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="dioxus" />
+    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="dioxus">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reiden-hub/assets/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/assets/main.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reiden-hub/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/src/main.rs" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -21,6 +27,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Lari4ka&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Lari4ka/Reiden-Hub.git&quot;,
+    &quot;accountId&quot;: &quot;abc8aa24-606f-47dd-82fc-b4ccdf1f693b&quot;
+  }
+}</component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="dYJbtBpz" />
   </component>
@@ -104,6 +122,8 @@
       <option name="presentableId" value="Default" />
       <updated>1744544964723</updated>
       <workItem from="1744544965811" duration="6166000" />
+      <workItem from="1744553411039" duration="1589000" />
+      <workItem from="1744643527436" duration="4282000" />
     </task>
     <task id="LOCAL-00001" summary="dioxus">
       <option name="closed" value="true" />
@@ -177,7 +197,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744553187787</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="dioxus">
+      <option name="closed" value="true" />
+      <created>1744553435047</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1744553435047</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
