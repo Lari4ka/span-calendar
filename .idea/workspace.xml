@@ -8,11 +8,13 @@
     <cargoProject FILE="$PROJECT_DIR$/Reiden-hub/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="dioxus">
+    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="hehe boi">
+      <change afterPath="$PROJECT_DIR$/Reiden-hub/src/app.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Reiden-hub/src/model.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Reiden-hub/src/model/model.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Reiden-hub/assets/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/assets/main.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -21,6 +23,13 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:dev" />
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Rust File" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Rebase.Settings">
     <option name="NEW_BASE" value="master" />
   </component>
@@ -43,7 +52,7 @@
     <option name="directoryName" value="dYJbtBpz" />
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
@@ -123,7 +132,15 @@
       <updated>1744544964723</updated>
       <workItem from="1744544965811" duration="6166000" />
       <workItem from="1744553411039" duration="1589000" />
-      <workItem from="1744643527436" duration="4282000" />
+      <workItem from="1744643527436" duration="4513000" />
+      <workItem from="1744699051591" duration="434000" />
+      <workItem from="1744710794523" duration="1222000" />
+      <workItem from="1744723621548" duration="1812000" />
+      <workItem from="1744799302700" duration="1241000" />
+      <workItem from="1744820339572" duration="2986000" />
+      <workItem from="1744901416661" duration="5648000" />
+      <workItem from="1744977875594" duration="1008000" />
+      <workItem from="1744987613300" duration="4506000" />
     </task>
     <task id="LOCAL-00001" summary="dioxus">
       <option name="closed" value="true" />
@@ -205,7 +222,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744553435047</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="hehe boi">
+      <option name="closed" value="true" />
+      <created>1744652622654</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1744652622654</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -213,6 +238,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="dioxus" />
-    <option name="LAST_COMMIT_MESSAGE" value="dioxus" />
+    <MESSAGE value="hehe boi" />
+    <option name="LAST_COMMIT_MESSAGE" value="hehe boi" />
   </component>
 </project>

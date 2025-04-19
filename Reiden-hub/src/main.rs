@@ -1,11 +1,19 @@
-use dioxus::html::completions::CompleteWithBraces::{button, div, input};
+pub mod app;
+pub mod model;
+
+use std::collections::HashMap;
+use dioxus::html::completions::CompleteWithBraces::{button, div, h1, input};
+use dioxus::html::form::action;
+use dioxus::launch;
 use dioxus::logger::tracing;
-use dioxus::logger::tracing::info;
+use dioxus::logger::tracing::{event, info};
 use dioxus::prelude::*;
-use dioxus::*;
-use time::Date;
+use serde::{Deserialize, Serialize};
+use serde::de::value::StringDeserializer;
 use time::macros;
 use time::macros::date;
+use time::Date;
+use regex::Regex;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const CSS: Asset = asset!("/assets/main.css");
@@ -17,59 +25,35 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    rsx! {
-        document::Stylesheet { href: CSS }
-        reiden_app { expy: "Acheron" }
-        add_span { }
-    }
-}
+    let regexp = Regex::new("https:(.*?)\\.jpeg")?;
+    let mut img_src = use_resource(|| async move {
+        reqwest::get("https://civitai.com/api/v1/images?limit=1")
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap()
+    });
+    let url =  match &*img_src.read_unchecked() {
+        Some(url) => url.clone(),
+        None => String::new(),
+    };
+    let regexed = match regexp.find(&url) {
+        Some(regex) => regex.as_str().to_string(),
+        None => "NONE".to_string(),
+    };
+    info!("sus: {}", regexed);
 
-#[component]
-fn reiden_app(expy: String) -> Element {
     rsx! {
-        "expy: {expy}"
-    }
-}
-
-#[component]
-fn add_span() -> Element {
-    let mut start_date = use_signal(|| String::new());
-    let mut end_date = use_signal(|| String::new());
-    rsx! {
-        div { }
-        input {
-            value: "{start_date}",
-            id: "add-span-start-date",
-            type: "date",
-            oninput: move |input| start_date.set(input.value()),
-        }
-        div { }
-        input {
-            value: "{end_date}",
-            id: "add-span-end-date",
-            type: "date",
-            oninput: move |input| end_date.set(input.value()),
-        }
-        div { }
-        textarea {
-            value: "{start_date}, {end_date}",
-            id: "date_display",
-            resize: false,
+        div {
+            img { src: regexed }
         }
     }
 }
 
-#[component]
-fn time_span(
-    start: Date,
-    end: Date,
-) -> Element {
-    todo!()
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct ImageResponse {
+    success: bool,
+    count: i32,
+    data: String,
 }
-
-#[derive(Props, PartialEq, Clone)]
-pub struct ReidenAppProps {
-    expy: String,
-}
-
-
