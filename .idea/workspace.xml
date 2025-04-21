@@ -8,13 +8,8 @@
     <cargoProject FILE="$PROJECT_DIR$/Reiden-hub/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="hehe boi">
-      <change afterPath="$PROJECT_DIR$/Reiden-hub/src/app.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Reiden-hub/src/model.rs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Reiden-hub/src/model/model.rs" afterDir="false" />
+    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="civit ai api">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -141,6 +136,8 @@
       <workItem from="1744901416661" duration="5648000" />
       <workItem from="1744977875594" duration="1008000" />
       <workItem from="1744987613300" duration="4506000" />
+      <workItem from="1745040249778" duration="1184000" />
+      <workItem from="1745245756981" duration="806000" />
     </task>
     <task id="LOCAL-00001" summary="dioxus">
       <option name="closed" value="true" />
@@ -230,7 +227,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744652622654</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="civit ai api">
+      <option name="closed" value="true" />
+      <created>1745040364119</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1745040364119</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -239,6 +244,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="dioxus" />
     <MESSAGE value="hehe boi" />
-    <option name="LAST_COMMIT_MESSAGE" value="hehe boi" />
+    <MESSAGE value="civit ai api" />
+    <option name="LAST_COMMIT_MESSAGE" value="civit ai api" />
   </component>
 </project>
