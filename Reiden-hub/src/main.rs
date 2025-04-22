@@ -7,13 +7,18 @@ use dioxus::launch;
 use dioxus::logger::tracing;
 use dioxus::logger::tracing::{event, info};
 use dioxus::prelude::*;
+
 use regex::Regex;
+
 use serde::de::value::StringDeserializer;
 use serde::{Deserialize, Serialize};
+
 use std::collections::HashMap;
+
 use time::macros;
 use time::macros::date;
 use time::Date;
+use crate::model::model::{Span, Spans};
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const CSS: Asset = asset!("/assets/main.css");
@@ -25,35 +30,17 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    let regexp = Regex::new("https:(.*?)\\.jpeg")?;
-    let mut img_src = use_resource(|| async move {
-        reqwest::get("https://civitai.com/api/v1/images?limit=1")
-            .await
-            .unwrap()
-            .text()
-            .await
-            .unwrap()
-    });
-    let url = match &*img_src.read_unchecked() {
-        Some(url) => url.clone(),
-        None => String::new(),
-    };
-    let regexed = match regexp.find(&url) {
-        Some(regex) => regex.as_str().to_string(),
-        None => "NONE".to_string(),
-    };
-    info!("sus: {}", regexed);
+    let mut spans = Spans::new();
+
+    let example_duration = ("01-01-0001".to_string(), "02-02-0002".to_string());
+    let example = Span::new(example_duration);
+    let test = spans.add(example);
 
     rsx! {
         div {
-            img { src: regexed }
+            for i in spans {
+                "{i}"
+            }
         }
     }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-struct ImageResponse {
-    success: bool,
-    count: i32,
-    data: String,
 }
