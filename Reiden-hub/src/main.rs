@@ -30,6 +30,7 @@ fn main() {
 
 #[component]
 fn App() -> Element {
+
     let mut spans = Spans::new();
 
     let example_duration = ("01-01-0001".to_string(), "02-02-0002".to_string());
@@ -37,7 +38,9 @@ fn App() -> Element {
     let test = spans.add(example);
 
     rsx! {
+        document::Stylesheet { href: CSS }
         div {
+            id: "test",
             for i in spans {
                 "{i}"
             }

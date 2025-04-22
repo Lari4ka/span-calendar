@@ -8,10 +8,10 @@
     <cargoProject FILE="$PROJECT_DIR$/Reiden-hub/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="civit ai api">
+    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="span structs">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Reiden-hub/assets/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/assets/main.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Reiden-hub/src/model/model.rs" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/src/model/model.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,7 +139,7 @@
       <workItem from="1744987613300" duration="4506000" />
       <workItem from="1745040249778" duration="1184000" />
       <workItem from="1745245756981" duration="1438000" />
-      <workItem from="1745324689609" duration="1438000" />
+      <workItem from="1745324689609" duration="2370000" />
     </task>
     <task id="LOCAL-00001" summary="dioxus">
       <option name="closed" value="true" />
@@ -245,7 +245,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745253744081</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="span structs">
+      <option name="closed" value="true" />
+      <created>1745326419426</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1745326419426</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -255,6 +263,7 @@
     <MESSAGE value="dioxus" />
     <MESSAGE value="hehe boi" />
     <MESSAGE value="civit ai api" />
-    <option name="LAST_COMMIT_MESSAGE" value="civit ai api" />
+    <MESSAGE value="span structs" />
+    <option name="LAST_COMMIT_MESSAGE" value="span structs" />
   </component>
 </project>
