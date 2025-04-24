@@ -1,6 +1,14 @@
 
-#test {
+.add_span_button {
     background-color: #2fe878;
+    border: #215963;
+    border-radius: 10px;
+    width: fit-content;
+    display: flex;
+}
+
+.Menu {
+    background-color: #3bac9b;
     border: #215963;
     border-radius: 10px;
     width: fit-content;

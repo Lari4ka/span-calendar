@@ -8,14 +8,12 @@
     <cargoProject FILE="$PROJECT_DIR$/Reiden-hub/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="css">
+    <list default="true" id="98b3d053-06b3-4896-a926-28625a0cdd85" name="Changes" comment="vse naxui peredelal&#10;*peredelau">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.lock" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/assets/main.css" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/assets/main.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Reiden-hub/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/Reiden-hub/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Reiden-hub/src/model.rs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Reiden-hub/src/model/model.rs" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -147,7 +145,7 @@
       <workItem from="1745337267875" duration="1371000" />
       <workItem from="1745338897142" duration="214000" />
       <workItem from="1745416560361" duration="8932000" />
-      <workItem from="1745489355458" duration="303000" />
+      <workItem from="1745489355458" duration="2844000" />
     </task>
     <task id="LOCAL-00001" summary="dioxus">
       <option name="closed" value="true" />
@@ -269,7 +267,15 @@
       <option name="project" value="LOCAL" />
       <updated>1745327386124</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="vse naxui peredelal&#10;*peredelau">
+      <option name="closed" value="true" />
+      <created>1745489852664</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1745489852664</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -281,6 +287,7 @@
     <MESSAGE value="civit ai api" />
     <MESSAGE value="span structs" />
     <MESSAGE value="css" />
-    <option name="LAST_COMMIT_MESSAGE" value="css" />
+    <MESSAGE value="vse naxui peredelal&#10;*peredelau" />
+    <option name="LAST_COMMIT_MESSAGE" value="vse naxui peredelal&#10;*peredelau" />
   </component>
 </project>
