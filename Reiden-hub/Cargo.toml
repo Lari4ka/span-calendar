@@ -9,9 +9,7 @@ edition = "2021"
 [dependencies]
 dioxus = { version = "0.6.0", features = [] }
 time = { version = "0.3.41", features = ["macros"] }
-tokio = "1.44.2"
 serde = "1.0.219"
-reqwest = { version = "0.12.15", features = ["json"] }
 regex = "1.11.1"
 
 [features]

@@ -3,6 +3,8 @@
     background-color: #2fe878;
     border: #215963;
     border-radius: 10px;
+    width: fit-content;
+    display: flex;
 }
 
 
