@@ -7,6 +7,7 @@ use axum::{
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    
     let app = Router::new().route("/get_spans", get(get_spans));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
@@ -15,17 +16,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let connection = rusqlite::Connection::open("Reiden-hub/data/spans.db")?;
 
-    let sql = r#"(
+    let start_date = String::from("1.1.1");
+    let end_date = String::from("2.2.2");
+
+
+    let sql = r#"
+    (
         INSERT INTO spans (
-        id,
-        start_date,
-        end_date,
-        name
+            id,
+            start_date,
+            end_date,
+            name
         )
         VALUES (
-        1, 
+            1, 
+            ?1,
+            ?2,
+            TEXT("test")
         )
-    )"#;
+    )
+    "#;
+
+    connection.execute(sql, [start_date, end_date]).unwrap();
 
     axum::serve(listener, app).await.unwrap();
 
