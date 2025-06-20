@@ -13,7 +13,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .unwrap();
 
-    
+    let connection = rusqlite::Connection::open("Reiden-hub/data/spans.db")?;
+
+    let sql = r#"(
+        INSERT INTO spans (
+        id,
+        start_date,
+        end_date,
+        name
+        )
+        VALUES (
+        1, 
+        )
+    )"#;
 
     axum::serve(listener, app).await.unwrap();
 
