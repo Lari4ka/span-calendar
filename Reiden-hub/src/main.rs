@@ -1,4 +1,3 @@
-pub mod app;
 
 use dioxus::html::completions::CompleteWithBraces::{button, div, h1, input};
 use dioxus::html::form::action;
@@ -7,15 +6,8 @@ use dioxus::logger::tracing;
 use dioxus::logger::tracing::{event, info};
 use dioxus::prelude::*;
 
-use regex::Regex;
-
-use serde::de::value::StringDeserializer;
-
 use std::collections::HashMap;
-
-use time::macros;
-use time::macros::date;
-use time::Date;
+use dioxus::html::semantics::encoding;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const CSS: Asset = asset!("/assets/main.css");
@@ -27,6 +19,7 @@ fn main() {
 
 #[component]
 fn App() -> Element {
+
     rsx! {
         document::Stylesheet { href: CSS }
         Main {}
@@ -40,7 +33,7 @@ fn Main() -> Element {
 
     let start_date = use_signal(String::new);
     let end_date = use_signal(String::new);
-
+    println!("here");
     rsx! {
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
@@ -83,6 +76,7 @@ fn AddSpanComponent(start_date: Signal<String>, end_date: Signal<String>) -> Ele
                         type: "text",
                         placeholder: "start date",
                         oninput: move |input| {
+                            println!("there");
                             start_date.set(input.value());
                         },
                     }
@@ -100,10 +94,10 @@ fn AddSpanComponent(start_date: Signal<String>, end_date: Signal<String>) -> Ele
                 div {
                     button {
                         class: "add_span_button",
-                        "add",
                         onclick: move |_| async move {
-                            create_span(start_date(), end_date()).await.unwrap();
-                        }
+                            //create_span(start_date(), end_date()).await.unwrap();
+                        },
+                        "add",
                     }
                 }
             }
@@ -120,9 +114,19 @@ fn SpansComponent() -> Element {
     }
 }
 
-#[server]
-async fn create_span(start_date: String, end_date: String) -> Result<(), ServerFnError> {
-    Ok(())
-}
+/*async fn get_spans() -> Vec<Span> {
+    reqwest::get("http://127.0.0.1:8080/get_spans")
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap()
+}*/
 
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct Span {
+    id: u32,
+    start_date: String,
+    end_date: String,
+}
 
