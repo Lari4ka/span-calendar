@@ -1,43 +1,43 @@
-use std::error::Error;
 use axum::response::IntoResponse;
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{Router, routing::get};
+use std::error::Error;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    
     let app = Router::new().route("/get_spans", get(get_spans));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
         .await
         .unwrap();
-
-    let connection = rusqlite::Connection::open("Reiden-hub/data/spans.db")?;
+    let connection = rusqlite::Connection::open("./spans.db3")?;
+    let path = connection.path().unwrap();
+    println!("path:\n{}\n", path);
 
     let start_date = String::from("1.1.1");
     let end_date = String::from("2.2.2");
 
-
-    let sql = r#"
-    (
-        INSERT INTO spans (
-            id,
-            start_date,
-            end_date,
-            name
-        )
-        VALUES (
-            1, 
-            ?1,
-            ?2,
-            TEXT("test")
-        )
+    let sql = r#"INSERT INTO spans (
+        id,
+        name,
+        start_date,
+        end_date
     )
-    "#;
+    VALUES (
+        1,
+        ?1,
+        ?2,
+        DATE('now')
+    )"#;
 
-    connection.execute(sql, [start_date, end_date]).unwrap();
+    connection.execute(
+        "CREATE TABLE IF NOT EXISTS spans (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            start_date TEXT,
+            end_date TEXT
+            )",
+        ()).unwrap();
+    connection.execute(sql, (start_date, end_date)).unwrap();
 
     axum::serve(listener, app).await.unwrap();
 

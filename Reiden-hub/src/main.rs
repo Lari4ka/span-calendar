@@ -18,7 +18,6 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-
     rsx! {
         document::Stylesheet { href: CSS }
         Main {}
