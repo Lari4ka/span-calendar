@@ -5,8 +5,8 @@ use dioxus::logger::tracing;
 use dioxus::logger::tracing::{event, info};
 use dioxus::prelude::*;
 
-use std::collections::HashMap;
 use dioxus::html::semantics::encoding;
+use std::collections::HashMap;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const CSS: Asset = asset!("/assets/main.css");
@@ -26,12 +26,18 @@ fn App() -> Element {
 
 #[component]
 fn Main() -> Element {
-
     let mut toggle_add_form = use_signal(|| false);
 
     let start_date = use_signal(String::new);
     let end_date = use_signal(String::new);
-    println!("here");
+    let mut spans = use_signal(Vec::<Span>::new);
+
+    use_future(move || async move {
+        for span in get_spans().await {
+            spans.write().push(span);
+        }
+    });
+
     rsx! {
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
@@ -112,14 +118,14 @@ fn SpansComponent() -> Element {
     }
 }
 
-/*async fn get_spans() -> Vec<Span> {
-    reqwest::get("http://127.0.0.1:8080/get_spans")
+async fn get_spans() -> Vec<Span> {
+    reqwest::get("http://127.0.0.1:8081/get_spans")
         .await
         .unwrap()
         .json()
         .await
         .unwrap()
-}*/
+}
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Span {
@@ -127,4 +133,3 @@ pub struct Span {
     start_date: String,
     end_date: String,
 }
-
