@@ -38,6 +38,8 @@ fn Main() -> Element {
         }
     });
 
+    info!("spans: {:?}", spans);
+
     rsx! {
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
@@ -99,7 +101,7 @@ fn AddSpanComponent(start_date: Signal<String>, end_date: Signal<String>) -> Ele
                     button {
                         class: "add_span_button",
                         onclick: move |_| async move {
-                            //create_span(start_date(), end_date()).await.unwrap();
+                            add_span(start_date(), end_date()).await;
                         },
                         "add",
                     }
@@ -118,6 +120,21 @@ fn SpansComponent() -> Element {
     }
 }
 
+async fn add_span(start_date: String, end_date: String) {
+    info!("adding");
+    let span_entry = SpanEntry {
+        start_date,
+        end_date,
+    };
+
+    reqwest::Client::new()
+        .post("http://127.0.0.1:8081/add_span")
+        .json(&span_entry)
+        .send()
+        .await
+        .unwrap();
+}
+
 async fn get_spans() -> Vec<Span> {
     reqwest::get("http://127.0.0.1:8081/get_spans")
         .await
@@ -130,6 +147,12 @@ async fn get_spans() -> Vec<Span> {
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Span {
     id: u32,
+    start_date: String,
+    end_date: String,
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct SpanEntry {
     start_date: String,
     end_date: String,
 }
