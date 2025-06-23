@@ -22,9 +22,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 async fn add_span(Json(span): Json<SpanEntry>) -> impl IntoResponse {
 
-let connection = rusqlite::Connection::open("./spans.db3").unwrap();
+    println!("here");
+    println!("{:?}", span);
 
-let sql = r#"
+    let connection = rusqlite::Connection::open("./spans.db3").unwrap();
+
+    println!("WHERE");
+
+    let sql = r#"
 INSERT INTO spans (
     id,
     name,
@@ -37,6 +42,8 @@ VALUES (
     ?2,
     DATE('now')
 )"#;
+
+    println!("HERE");
 
     connection.execute(sql, [&span.start_date, &span.end_date]).unwrap();
 

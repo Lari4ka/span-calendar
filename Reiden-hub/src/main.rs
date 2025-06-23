@@ -43,9 +43,9 @@ fn Main() -> Element {
     rsx! {
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
-            AddSpanComponent { start_date, end_date }
+            AddSpanComponent { start_date, end_date, toggle_add_form }
         } else {
-            SpansComponent {}
+            SpansComponent { spans }
         }
     }
 }
@@ -72,7 +72,11 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
 }
 
 #[component]
-fn AddSpanComponent(start_date: Signal<String>, end_date: Signal<String>) -> Element {
+fn AddSpanComponent(
+        start_date: Signal<String>,
+        end_date: Signal<String>,
+        toggle_add_form: Signal<bool>
+    ) -> Element {
     rsx! {
         main {
             div {
@@ -101,7 +105,11 @@ fn AddSpanComponent(start_date: Signal<String>, end_date: Signal<String>) -> Ele
                     button {
                         class: "add_span_button",
                         onclick: move |_| async move {
+                            info!("here");
                             add_span(start_date(), end_date()).await;
+                            info!("there");
+                            toggle_add_form.set(!toggle_add_form());
+                            info!("where");
                         },
                         "add",
                     }
@@ -112,10 +120,10 @@ fn AddSpanComponent(start_date: Signal<String>, end_date: Signal<String>) -> Ele
 }
 
 #[component]
-fn SpansComponent() -> Element {
+fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
     rsx! {
-        div {
-            "spans"
+        for span in spans() {
+            div { "start: {span.start_date}, end: {span.end_date}" }
         }
     }
 }
@@ -133,6 +141,8 @@ async fn add_span(start_date: String, end_date: String) {
         .send()
         .await
         .unwrap();
+
+    
 }
 
 async fn get_spans() -> Vec<Span> {
