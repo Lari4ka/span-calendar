@@ -1,16 +1,8 @@
-use dioxus::html::completions::CompleteWithBraces::{button, div, h1, input};
-use dioxus::html::form::action;
 use dioxus::launch;
-use dioxus::logger::tracing;
-use dioxus::logger::tracing::{event, info};
+use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 
-use dioxus::html::semantics::encoding;
-use std::collections::HashMap;
-
-const FAVICON: Asset = asset!("/assets/favicon.ico");
 const CSS: Asset = asset!("/assets/main.css");
-const HEADER_SVG: Asset = asset!("/assets/header.svg");
 
 fn main() {
     launch(App);
@@ -26,10 +18,12 @@ fn App() -> Element {
 
 #[component]
 fn Main() -> Element {
-    let mut toggle_add_form = use_signal(|| false);
+    
+    let toggle_add_form = use_signal(|| false);
 
     let start_date = use_signal(String::new);
     let end_date = use_signal(String::new);
+    let name = use_signal(String::new);
     let mut spans = use_signal(Vec::<Span>::new);
 
     use_future(move || async move {
@@ -43,7 +37,7 @@ fn Main() -> Element {
     rsx! {
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
-            AddSpanComponent { start_date, end_date, toggle_add_form }
+            AddSpanComponent { start_date, end_date, name, toggle_add_form }
         } else {
             SpansComponent { spans }
         }
@@ -75,6 +69,7 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
 fn AddSpanComponent(
         start_date: Signal<String>,
         end_date: Signal<String>,
+        name: Signal<String>,
         toggle_add_form: Signal<bool>
     ) -> Element {
     rsx! {
@@ -102,11 +97,21 @@ fn AddSpanComponent(
                     }
                 }
                 div {
+                    input {
+                        class: "input_container",
+                        type: "name",
+                        placeholder: "name",
+                        oninput: move |input| {
+                            name.set(input.value());
+                        },
+                    }
+                }
+                div {
                     button {
                         class: "add_span_button",
                         onclick: move |_| async move {
                             info!("here");
-                            add_span(start_date(), end_date()).await;
+                            add_span(start_date(), end_date(), name()).await;
                             info!("there");
                             toggle_add_form.set(!toggle_add_form());
                             info!("where");
@@ -128,16 +133,18 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
     }
 }
 
-async fn add_span(start_date: String, end_date: String) {
-    info!("adding");
-    let span_entry = SpanEntry {
+async fn add_span(start_date: String, end_date: String, name: String) {
+
+    let span = Span {
+        id: None,
+        name,
         start_date,
         end_date,
     };
 
     reqwest::Client::new()
         .post("http://127.0.0.1:8081/add_span")
-        .json(&span_entry)
+        .json(&span)
         .send()
         .await
         .unwrap();
@@ -156,13 +163,8 @@ async fn get_spans() -> Vec<Span> {
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Span {
-    id: u32,
-    start_date: String,
-    end_date: String,
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct SpanEntry {
+    id: Option<u64>,
+    name: String,
     start_date: String,
     end_date: String,
 }

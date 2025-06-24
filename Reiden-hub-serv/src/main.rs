@@ -1,8 +1,14 @@
-use axum::http::{status, StatusCode};
+use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::{Json, Router, routing::{get, post}};
+use axum::{
+    Json, Router,
+    routing::{get, post},
+};
 use std::error::Error;
+use std::sync::{Arc, Mutex};
 use tower_http::cors::CorsLayer;
+
+static mut CURRENT_ID: u64 = 1;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -20,14 +26,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn add_span(Json(span): Json<SpanEntry>) -> impl IntoResponse {
+async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
 
-    println!("here");
-    println!("{:?}", span);
+    let id = unsafe {
+        let counter = Arc::new(Mutex::new(CURRENT_ID));
+        let mut num = counter.lock().unwrap();
+        *num += 1;
+        CURRENT_ID = *num;
+        *num
+    };
+
+    println!("id: {}", id);
+    println!("SPAN JSON: {:?}", span);
 
     let connection = rusqlite::Connection::open("./spans.db3").unwrap();
-
-    println!("WHERE");
 
     let sql = r#"
 INSERT INTO spans (
@@ -37,15 +49,23 @@ INSERT INTO spans (
     end_date
 )
 VALUES (
-    1,
     ?1,
     ?2,
-    DATE('now')
+    ?3,
+    ?4
 )"#;
 
-    println!("HERE");
-
-    connection.execute(sql, [&span.start_date, &span.end_date]).unwrap();
+    connection
+        .execute(
+            sql,
+            [
+                &id.to_string(),
+                &span.name,
+                &span.start_date,
+                &span.end_date,
+            ],
+        )
+        .unwrap();
 
     StatusCode::OK
 }
@@ -53,16 +73,18 @@ VALUES (
 async fn get_spans() -> impl IntoResponse {
     let con = rusqlite::Connection::open("./spans.db3").unwrap();
 
+
     let mut stm = con
-        .prepare("SELECT id, start_date, end_date FROM spans")
+        .prepare("SELECT id, name, start_date, end_date FROM spans")
         .unwrap();
 
     let rows = stm
         .query_map([], |row| {
             Ok(Span {
                 id: row.get(0).unwrap(),
-                start_date: row.get(1).unwrap(),
-                end_date: row.get(2).unwrap(),
+                name: row.get(1).unwrap(),
+                start_date: row.get(2).unwrap(),
+                end_date: row.get(3).unwrap(),
             })
         })
         .unwrap();
@@ -77,13 +99,8 @@ async fn get_spans() -> impl IntoResponse {
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Span {
-    id: u32,
-    start_date: String,
-    end_date: String,
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct SpanEntry {
+    id: Option<u64>,
+    name: String,
     start_date: String,
     end_date: String,
 }
