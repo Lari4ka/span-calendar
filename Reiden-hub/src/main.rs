@@ -32,15 +32,12 @@ fn Main() -> Element {
         }
     });
 
-    info!("spans: {:?}", spans);
-
     rsx! {
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
             AddSpanComponent { start_date, end_date, name, toggle_add_form }
-        } else {
-            SpansComponent { spans }
         }
+        SpansComponent { spans }
     }
 }
 
@@ -110,11 +107,8 @@ fn AddSpanComponent(
                     button {
                         class: "add_span_button",
                         onclick: move |_| async move {
-                            info!("here");
                             add_span(start_date(), end_date(), name()).await;
-                            info!("there");
                             toggle_add_form.set(!toggle_add_form());
-                            info!("where");
                         },
                         "add",
                     }
@@ -128,7 +122,10 @@ fn AddSpanComponent(
 fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
     rsx! {
         for span in spans() {
-            div { "start: {span.start_date}, end: {span.end_date}" }
+            div {
+                class: "span-component",
+                "start: {span.start_date}, end: {span.end_date}"
+             }
         }
     }
 }
@@ -148,7 +145,6 @@ async fn add_span(start_date: String, end_date: String, name: String) {
         .send()
         .await
         .unwrap();
-
     
 }
 

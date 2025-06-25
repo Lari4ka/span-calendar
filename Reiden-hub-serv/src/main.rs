@@ -5,10 +5,7 @@ use axum::{
     routing::{get, post},
 };
 use std::error::Error;
-use std::sync::{Arc, Mutex};
 use tower_http::cors::CorsLayer;
-
-static mut CURRENT_ID: u64 = 1;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -28,18 +25,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
 
-    let id = unsafe {
-        let counter = Arc::new(Mutex::new(CURRENT_ID));
-        let mut num = counter.lock().unwrap();
-        *num += 1;
-        CURRENT_ID = *num;
-        *num
-    };
-
-    println!("id: {}", id);
-    println!("SPAN JSON: {:?}", span);
-
     let connection = rusqlite::Connection::open("./spans.db3").unwrap();
+
+    let mut stmt = connection.prepare("SELECT MAX(id) FROM spans").unwrap();
+    
+    let id: u32 = stmt.query_one([], |row| {
+        row.get(0)
+    })
+    .unwrap();
 
     let sql = r#"
 INSERT INTO spans (
@@ -59,7 +52,7 @@ VALUES (
         .execute(
             sql,
             [
-                &id.to_string(),
+                &(id + 1).to_string(),
                 &span.name,
                 &span.start_date,
                 &span.end_date,
