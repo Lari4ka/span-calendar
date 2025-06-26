@@ -17,13 +17,19 @@ fn App() -> Element {
 
 #[component]
 fn Main() -> Element {
+
+    //togle add span menu
     let toggle_add_form = use_signal(|| false);
 
+    //span data containers
     let start_date = use_signal(String::new);
     let end_date = use_signal(String::new);
     let name = use_signal(String::new);
+
+    //spans container
     let mut spans = use_signal(Vec::<Span>::new);
 
+    //fill spans container from db
     use_future(move || async move {
         for span in get_spans().await {
             spans.write().push(span);
@@ -39,6 +45,7 @@ fn Main() -> Element {
     }
 }
 
+//main menu
 #[component]
 fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
     rsx! {
@@ -60,6 +67,8 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
     }
 }
 
+
+//add span menu
 #[component]
 fn AddSpanComponent(
     start_date: Signal<String>,
@@ -108,6 +117,7 @@ fn AddSpanComponent(
                         onclick: move |_| async move {
                             let added_span = add_span(start_date(), end_date(), name()).await;
                             spans.push(added_span);
+                            //turn off add span menu
                             toggle_add_form.set(!toggle_add_form());
                         },
                         "add",
@@ -145,15 +155,19 @@ async fn add_span(start_date: String, end_date: String, name: String) -> Span {
         .json(&span)
         .send()
         .await
+        // request to add span to db
         .unwrap()
         .json()
         .await
         .unwrap();
+        // get id of added span as a response
+    
     span.id = Some(id);
     span
 }
 
 async fn get_spans() -> Vec<Span> {
+    //get all spans from db on first launch of page
     reqwest::get("http://127.0.0.1:8081/get_spans")
         .await
         .unwrap()

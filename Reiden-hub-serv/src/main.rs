@@ -28,6 +28,7 @@ async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
 
     let mut stmt = connection.prepare("SELECT MAX(id) FROM spans").unwrap();
     
+    // get id of last span in db
     let id: u32 = stmt.query_one([], |row| {
         row.get(0)
     })
@@ -63,13 +64,13 @@ VALUES (
 }
 
 async fn get_spans() -> impl IntoResponse {
-    let con = rusqlite::Connection::open("./spans.db3").unwrap();
 
+    let con = rusqlite::Connection::open("./spans.db3").unwrap();
 
     let mut stm = con
         .prepare("SELECT id, name, start_date, end_date FROM spans")
         .unwrap();
-
+    // get span data from db
     let rows = stm
         .query_map([], |row| {
             Ok(Span {
