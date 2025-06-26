@@ -1,4 +1,3 @@
-use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{
     Json, Router,
@@ -60,7 +59,7 @@ VALUES (
         )
         .unwrap();
 
-    StatusCode::OK
+    Json(id)
 }
 
 async fn get_spans() -> impl IntoResponse {

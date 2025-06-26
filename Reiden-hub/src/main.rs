@@ -1,5 +1,4 @@
 use dioxus::launch;
-use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 
 const CSS: Asset = asset!("/assets/main.css");
@@ -18,7 +17,6 @@ fn App() -> Element {
 
 #[component]
 fn Main() -> Element {
-    
     let toggle_add_form = use_signal(|| false);
 
     let start_date = use_signal(String::new);
@@ -35,7 +33,7 @@ fn Main() -> Element {
     rsx! {
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
-            AddSpanComponent { start_date, end_date, name, toggle_add_form }
+            AddSpanComponent { start_date, end_date, name, toggle_add_form, spans }
         }
         SpansComponent { spans }
     }
@@ -64,11 +62,12 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
 
 #[component]
 fn AddSpanComponent(
-        start_date: Signal<String>,
-        end_date: Signal<String>,
-        name: Signal<String>,
-        toggle_add_form: Signal<bool>
-    ) -> Element {
+    start_date: Signal<String>,
+    end_date: Signal<String>,
+    name: Signal<String>,
+    toggle_add_form: Signal<bool>,
+    spans: Signal<Vec<Span>>,
+) -> Element {
     rsx! {
         main {
             div {
@@ -107,7 +106,8 @@ fn AddSpanComponent(
                     button {
                         class: "add_span_button",
                         onclick: move |_| async move {
-                            add_span(start_date(), end_date(), name()).await;
+                            let added_span = add_span(start_date(), end_date(), name()).await;
+                            spans.push(added_span);
                             toggle_add_form.set(!toggle_add_form());
                         },
                         "add",
@@ -130,22 +130,27 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
     }
 }
 
-async fn add_span(start_date: String, end_date: String, name: String) {
-
-    let span = Span {
+async fn add_span(start_date: String, end_date: String, name: String) -> Span {
+    let mut span = Span {
         id: None,
         name,
         start_date,
         end_date,
     };
 
-    reqwest::Client::new()
+    let client = reqwest::Client::new();
+
+    let id: u64 = client
         .post("http://127.0.0.1:8081/add_span")
         .json(&span)
         .send()
         .await
+        .unwrap()
+        .json()
+        .await
         .unwrap();
-    
+    span.id = Some(id);
+    span
 }
 
 async fn get_spans() -> Vec<Span> {
