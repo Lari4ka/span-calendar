@@ -8,12 +8,15 @@ body {
 
 .span-component {
     background-color: rgb(10, 94, 55);
-    border-radius: 20%;
-    border: 10px solid green;
+    border: 2px solid green;
     border-color: rgb(18, 145, 92);
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: row;
     margin: auto;
+}
+.time_container {
+    border: 3px solid rgb(71, 21, 138);
+    width: fit-content;
 }

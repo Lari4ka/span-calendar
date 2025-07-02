@@ -23,16 +23,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
-
     let connection = rusqlite::Connection::open("./spans.db3").unwrap();
 
     let mut stmt = connection.prepare("SELECT MAX(id) FROM spans").unwrap();
-    
+
     // get id of last span in db
-    let id: u32 = stmt.query_one([], |row| {
-        row.get(0)
-    })
-    .unwrap();
+    let id: u32 = stmt.query_one([], |row| row.get(0)).unwrap();
 
     let sql = r#"
 INSERT INTO spans (
@@ -64,7 +60,6 @@ VALUES (
 }
 
 async fn get_spans() -> impl IntoResponse {
-
     let con = rusqlite::Connection::open("./spans.db3").unwrap();
 
     let mut stm = con

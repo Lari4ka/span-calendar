@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use chrono::Local;
 use dioxus::launch;
 use dioxus::prelude::*;
 
@@ -17,7 +20,6 @@ fn App() -> Element {
 
 #[component]
 fn Main() -> Element {
-
     //togle add span menu
     let toggle_add_form = use_signal(|| false);
 
@@ -37,6 +39,7 @@ fn Main() -> Element {
     });
 
     rsx! {
+        CurrentTimeComponent {  }
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
             AddSpanComponent { start_date, end_date, name, toggle_add_form, spans }
@@ -67,6 +70,23 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
     }
 }
 
+//current time component
+#[component]
+fn CurrentTimeComponent() -> Element {
+    let mut time = use_signal(|| Local::now());
+    use_future(move || async move {
+        loop {
+            time.set(Local::now());
+            async_std::task::sleep(Duration::from_millis(1)).await;//колба 135 рублей в четверг. препарат кота для клещей. красная колба.
+        }
+    });
+    rsx! {
+        div {
+            class: "time_container",
+            h1 { "time: {time.read()}" }
+        }
+    }
+}
 
 //add span menu
 #[component]
@@ -160,8 +180,8 @@ async fn add_span(start_date: String, end_date: String, name: String) -> Span {
         .json()
         .await
         .unwrap();
-        // get id of added span as a response
-    
+    // get id of added span as a response
+
     span.id = Some(id);
     span
 }
