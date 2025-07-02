@@ -1,7 +1,10 @@
 use std::time::Duration;
 
 use chrono::Local;
+use chrono::naive::NaiveDate;
+use dioxus::html::g::end;
 use dioxus::launch;
+use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 
 const CSS: Asset = asset!("/assets/main.css");
@@ -73,13 +76,16 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
 //current time component
 #[component]
 fn CurrentTimeComponent() -> Element {
+    //timer
     let mut time = use_signal(|| Local::now());
+    // asynchronously update timer
     use_future(move || async move {
         loop {
             time.set(Local::now());
-            async_std::task::sleep(Duration::from_millis(1)).await;//колба 135 рублей в четверг. препарат кота для клещей. красная колба.
+            async_std::task::sleep(Duration::from_millis(1)).await;
         }
     });
+    //render timer
     rsx! {
         div {
             class: "time_container",
@@ -103,7 +109,7 @@ fn AddSpanComponent(
                 div {
                     input {
                         class: "input_container",
-                        type: "text",
+                        type: "date",
                         placeholder: "start date",
                         oninput: move |input| {
                             println!("there");
@@ -114,7 +120,7 @@ fn AddSpanComponent(
                 div {
                     input {
                         class: "input_container",
-                        type: "end date",
+                        type: "date",
                         placeholder: "end date",
                         oninput: move |input| {
                             end_date.set(input.value());
@@ -124,7 +130,7 @@ fn AddSpanComponent(
                 div {
                     input {
                         class: "input_container",
-                        type: "name",
+                        type: "text",
                         placeholder: "name",
                         oninput: move |input| {
                             name.set(input.value());
@@ -137,6 +143,10 @@ fn AddSpanComponent(
                         onclick: move |_| async move {
                             let added_span = add_span(start_date(), end_date(), name()).await;
                             spans.push(added_span);
+                            let strt_date = NaiveDate::parse_from_str(&start_date(), "%Y-%m-%d").unwrap();
+                            let nd_date = NaiveDate::parse_from_str(&end_date(), "%Y-%m-%d").unwrap();
+                            let duration = nd_date - strt_date;
+                            info!("days: {}", duration.num_days().to_string());
                             //turn off add span menu
                             toggle_add_form.set(!toggle_add_form());
                         },
