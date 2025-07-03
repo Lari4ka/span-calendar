@@ -5,7 +5,10 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 20px;
 }
-
+hr.vertical_line {
+    width: 100%;
+    transform: rotate(90deg);
+}
 .span-component {
     background-color: rgb(10, 94, 55);
     border: 2px solid green;
@@ -19,4 +22,28 @@ body {
 .time_container {
     border: 3px solid rgb(71, 21, 138);
     width: fit-content;
+}
+.start_date_container {
+    display: flex;
+    border: 2px solid red;
+    justify-content: left;
+    align-items: center;
+    flex-direction: row;
+    margin: auto;
+}
+.end_date_container {
+    display: flex;
+    border: 2px solid rgb(33, 252, 4);
+    justify-content: right;
+    align-items: center;
+    flex-direction: row;
+    margin: auto;
+}
+.duration_container {
+    display: flex;
+    border: 2px solid cyan;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    margin: auto;
 }

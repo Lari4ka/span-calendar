@@ -8,6 +8,7 @@ use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+
     let app = Router::new()
         .route("/get_spans", get(get_spans))
         .route("/add_span", post(add_span))
@@ -23,6 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
+
     let connection = rusqlite::Connection::open("./spans.db3").unwrap();
 
     let mut stmt = connection.prepare("SELECT MAX(id) FROM spans").unwrap();
@@ -35,13 +37,15 @@ INSERT INTO spans (
     id,
     name,
     start_date,
-    end_date
+    end_date,
+    duration
 )
 VALUES (
     ?1,
     ?2,
     ?3,
-    ?4
+    ?4,
+    ?5
 )"#;
 
     connection
@@ -52,6 +56,7 @@ VALUES (
                 &span.name,
                 &span.start_date,
                 &span.end_date,
+                &span.duration.to_string(),
             ],
         )
         .unwrap();
@@ -63,7 +68,7 @@ async fn get_spans() -> impl IntoResponse {
     let con = rusqlite::Connection::open("./spans.db3").unwrap();
 
     let mut stm = con
-        .prepare("SELECT id, name, start_date, end_date FROM spans")
+        .prepare("SELECT id, name, start_date, end_date, duration FROM spans")
         .unwrap();
     // get span data from db
     let rows = stm
@@ -73,6 +78,7 @@ async fn get_spans() -> impl IntoResponse {
                 name: row.get(1).unwrap(),
                 start_date: row.get(2).unwrap(),
                 end_date: row.get(3).unwrap(),
+                duration: row.get(4).unwrap(),
             })
         })
         .unwrap();
@@ -91,4 +97,5 @@ pub struct Span {
     name: String,
     start_date: String,
     end_date: String,
+    duration: i64,
 }

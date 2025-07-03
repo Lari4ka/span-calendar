@@ -1,10 +1,8 @@
 use std::time::Duration;
 
-use chrono::Local;
 use chrono::naive::NaiveDate;
-use dioxus::html::g::end;
+use chrono::Local;
 use dioxus::launch;
-use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 
 const CSS: Asset = asset!("/assets/main.css");
@@ -42,6 +40,9 @@ fn Main() -> Element {
     });
 
     rsx! {
+        hr {
+            class: "vertical_line"
+        }
         CurrentTimeComponent {  }
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
@@ -141,12 +142,10 @@ fn AddSpanComponent(
                     button {
                         class: "add_span_button",
                         onclick: move |_| async move {
+
                             let added_span = add_span(start_date(), end_date(), name()).await;
                             spans.push(added_span);
-                            let strt_date = NaiveDate::parse_from_str(&start_date(), "%Y-%m-%d").unwrap();
-                            let nd_date = NaiveDate::parse_from_str(&end_date(), "%Y-%m-%d").unwrap();
-                            let duration = nd_date - strt_date;
-                            info!("days: {}", duration.num_days().to_string());
+
                             //turn off add span menu
                             toggle_add_form.set(!toggle_add_form());
                         },
@@ -164,18 +163,36 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
         for span in spans() {
             div {
                 class: "span-component",
-                "start: {span.start_date}, end: {span.end_date}"
+                h3 {
+                    class: "start_date_container",
+                    "start date: {span.start_date}",
+                }
+                h3 {
+                    class: "duration_container",
+                    "duration: {span.duration} days"
+                }
+                h3 {
+                    class: "end_date_container",
+                    "end date: {span.end_date}",
+                }
              }
         }
     }
 }
 
 async fn add_span(start_date: String, end_date: String, name: String) -> Span {
+    
+    let parsed_start = parse_date(&start_date);
+    let parsed_end = parse_date(&end_date);
+
+    let duration = (parsed_end - parsed_start).num_days().abs();
+
     let mut span = Span {
         id: None,
         name,
         start_date,
         end_date,
+        duration,
     };
 
     let client = reqwest::Client::new();
@@ -206,10 +223,15 @@ async fn get_spans() -> Vec<Span> {
         .unwrap()
 }
 
+fn parse_date(date_str: &str) -> NaiveDate {
+    NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").unwrap()
+}
+
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Span {
     id: Option<u64>,
     name: String,
     start_date: String,
     end_date: String,
+    duration: i64,
 }
