@@ -1,6 +1,8 @@
+use std::mem;
 use std::time::Duration;
 
 use chrono::naive::NaiveDate;
+use chrono::Datelike;
 use chrono::Local;
 use dioxus::launch;
 use dioxus::prelude::*;
@@ -40,9 +42,7 @@ fn Main() -> Element {
     });
 
     rsx! {
-        hr {
-            class: "vertical_line"
-        }
+        hr { class: "vertical_line" }
         CurrentTimeComponent {  }
         MenuComponent { toggle_add_form },
         if toggle_add_form() {
@@ -181,7 +181,7 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
 }
 
 async fn add_span(start_date: String, end_date: String, name: String) -> Span {
-    
+
     let parsed_start = parse_date(&start_date);
     let parsed_end = parse_date(&end_date);
 
@@ -225,6 +225,24 @@ async fn get_spans() -> Vec<Span> {
 
 fn parse_date(date_str: &str) -> NaiveDate {
     NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").unwrap()
+}
+
+fn elapsed(span : Span) -> i64 {
+    
+    let start_date = parse_date(&span.start_date);
+    let end_date = parse_date(&span.end_date);
+
+    let duration = (end_date - start_date).num_days().abs();
+    let now = Local::now().date_naive();
+    
+    let elapsed = if start_date > end_date { 
+        (now - end_date).num_days() 
+    } else {
+        (now - start_date).num_days()
+    };
+
+    elapsed / duration
+
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
