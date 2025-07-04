@@ -1,4 +1,3 @@
-use std::mem;
 use std::time::Duration;
 
 use chrono::naive::NaiveDate;
@@ -104,6 +103,9 @@ fn AddSpanComponent(
     toggle_add_form: Signal<bool>,
     spans: Signal<Vec<Span>>,
 ) -> Element {
+
+    let mut toggle_error = use_signal(|| false);
+
     rsx! {
         main {
             div {
@@ -143,14 +145,28 @@ fn AddSpanComponent(
                         class: "add_span_button",
                         onclick: move |_| async move {
 
-                            let added_span = add_span(start_date(), end_date(), name()).await;
-                            spans.push(added_span);
+                            let add_result = add_span(start_date(), end_date(), name()).await;
+                            
+                            match add_result {
+                                Some(span) => {
+                                    spans.push(span);
+                                    toggle_error.set(false);
+                                }
+                                None => {
+                                    toggle_error.set(true);
+                                    start_date.set(String::new());
+                                    end_date.set(String::new());
+                                }
+                            }
 
                             //turn off add span menu
                             toggle_add_form.set(!toggle_add_form());
                         },
                         "add",
                     }
+                }
+                if toggle_error() {
+                    ErrorComponent {}
                 }
             }
         }
@@ -175,17 +191,29 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
                     class: "end_date_container",
                     "end date: {span.end_date}",
                 }
-             }
+            }
         }
     }
 }
 
-async fn add_span(start_date: String, end_date: String, name: String) -> Span {
+#[component]
+fn ErrorComponent() -> Element {
+    rsx! {
+        div { 
+            class: "error_component",
+            "Span must be longer than 1 day"
+        }
+    }
+}
+
+async fn add_span(start_date: String, end_date: String, name: String) -> Option<Span> {
 
     let parsed_start = parse_date(&start_date);
     let parsed_end = parse_date(&end_date);
 
     let duration = (parsed_end - parsed_start).num_days().abs();
+
+    if duration <= 1 { return None }
 
     let mut span = Span {
         id: None,
@@ -194,6 +222,14 @@ async fn add_span(start_date: String, end_date: String, name: String) -> Span {
         end_date,
         duration,
     };
+
+    let id = send_to_server(&span).await;
+
+    span.id = Some(id);
+    Some(span)
+}
+
+async fn send_to_server(span: &Span) -> u64 {
 
     let client = reqwest::Client::new();
 
@@ -207,10 +243,10 @@ async fn add_span(start_date: String, end_date: String, name: String) -> Span {
         .json()
         .await
         .unwrap();
-    // get id of added span as a response
+        // get id of added span as a response
 
-    span.id = Some(id);
-    span
+    id
+
 }
 
 async fn get_spans() -> Vec<Span> {
