@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chrono::naive::NaiveDate;
-use chrono::Datelike;
+use chrono::Days;
 use chrono::Local;
 use dioxus::launch;
 use dioxus::prelude::*;
@@ -48,6 +48,7 @@ fn Main() -> Element {
             AddSpanComponent { start_date, end_date, name, toggle_add_form, spans }
         }
         SpansComponent { spans }
+        Year {  }
     }
 }
 
@@ -160,7 +161,7 @@ fn AddSpanComponent(
                             }
 
                             //turn off add span menu
-                            toggle_add_form.set(!toggle_add_form());
+                            toggle_add_form.set(false);
                         },
                         "add",
                     }
@@ -204,6 +205,19 @@ fn ErrorComponent() -> Element {
             "Span must be longer than 1 day"
         }
     }
+}
+
+#[component]
+fn Year() -> Element {
+
+    rsx! {
+        table { 
+            for i in 0..=7 {
+                td { "{i}" }
+            }
+        }
+    }
+
 }
 
 async fn add_span(start_date: String, end_date: String, name: String) -> Option<Span> {
@@ -289,3 +303,60 @@ pub struct Span {
     end_date: String,
     duration: i64,
 }
+
+impl Span {
+    fn get_dates(&self) -> (NaiveDate, NaiveDate) {
+        (parse_date(&self.start_date), parse_date(&self.end_date))
+    }
+}
+
+pub struct Calendar {
+    days: Vec<Day>,
+}
+
+impl Calendar {
+
+    fn mark_passed(&mut self) {
+        self
+            .days
+            .iter_mut()
+            .filter(|day| day.date < Local::now().date_naive())
+            .for_each(|day| day.passed = true);
+    }
+
+    fn new(spans: Vec<Span>) -> Self {
+
+        let one_day = Days::new(1);
+
+        let mut days: Vec<Day> = Vec::new();
+        
+        let (start_date, end_date) = spans[0].get_dates();
+        let mut current_date = start_date.clone();
+
+        for i in 0..=(start_date - end_date).num_days() {
+            
+            days.push(Day {
+                date: current_date,
+                passed: true,
+            });
+            current_date.checked_add_days(one_day);
+
+        }
+
+        for i in 1..spans.len() {
+            if parse_date(&spans[i].start_date) < days[0].date {
+                
+            }
+        }
+
+        todo!()
+    }
+
+}
+
+pub struct Day {
+    date: NaiveDate,
+    passed: bool,
+}
+
+
