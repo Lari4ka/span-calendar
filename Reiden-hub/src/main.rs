@@ -3,7 +3,9 @@ use std::time::Duration;
 use chrono::naive::NaiveDate;
 use chrono::Days;
 use chrono::Local;
+use chrono::TimeDelta;
 use dioxus::launch;
+use dioxus::logger::tracing::span;
 use dioxus::prelude::*;
 
 const CSS: Asset = asset!("/assets/main.css");
@@ -104,7 +106,6 @@ fn AddSpanComponent(
     toggle_add_form: Signal<bool>,
     spans: Signal<Vec<Span>>,
 ) -> Element {
-
     let mut toggle_error = use_signal(|| false);
 
     rsx! {
@@ -147,7 +148,7 @@ fn AddSpanComponent(
                         onclick: move |_| async move {
 
                             let add_result = add_span(start_date(), end_date(), name()).await;
-                            
+
                             match add_result {
                                 Some(span) => {
                                     spans.push(span);
@@ -200,7 +201,7 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
 #[component]
 fn ErrorComponent() -> Element {
     rsx! {
-        div { 
+        div {
             class: "error_component",
             "Span must be longer than 1 day"
         }
@@ -209,25 +210,24 @@ fn ErrorComponent() -> Element {
 
 #[component]
 fn Year() -> Element {
-
     rsx! {
-        table { 
+        table {
             for i in 0..=7 {
                 td { "{i}" }
             }
         }
     }
-
 }
 
 async fn add_span(start_date: String, end_date: String, name: String) -> Option<Span> {
-
     let parsed_start = parse_date(&start_date);
     let parsed_end = parse_date(&end_date);
 
     let duration = (parsed_end - parsed_start).num_days().abs();
 
-    if duration <= 1 { return None }
+    if duration <= 1 {
+        return None;
+    }
 
     let mut span = Span {
         id: None,
@@ -244,7 +244,6 @@ async fn add_span(start_date: String, end_date: String, name: String) -> Option<
 }
 
 async fn send_to_server(span: &Span) -> u64 {
-
     let client = reqwest::Client::new();
 
     let id: u64 = client
@@ -257,10 +256,9 @@ async fn send_to_server(span: &Span) -> u64 {
         .json()
         .await
         .unwrap();
-        // get id of added span as a response
+    // get id of added span as a response
 
     id
-
 }
 
 async fn get_spans() -> Vec<Span> {
@@ -277,22 +275,20 @@ fn parse_date(date_str: &str) -> NaiveDate {
     NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").unwrap()
 }
 
-fn elapsed(span : Span) -> i64 {
-    
+fn elapsed(span: Span) -> i64 {
     let start_date = parse_date(&span.start_date);
     let end_date = parse_date(&span.end_date);
 
     let duration = (end_date - start_date).num_days().abs();
     let now = Local::now().date_naive();
-    
-    let elapsed = if start_date > end_date { 
-        (now - end_date).num_days() 
+
+    let elapsed = if start_date > end_date {
+        (now - end_date).num_days()
     } else {
         (now - start_date).num_days()
     };
 
     elapsed / duration
-
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
@@ -315,48 +311,71 @@ pub struct Calendar {
 }
 
 impl Calendar {
-
     fn mark_passed(&mut self) {
-        self
-            .days
+        self.days
             .iter_mut()
             .filter(|day| day.date < Local::now().date_naive())
             .for_each(|day| day.passed = true);
     }
 
     fn new(spans: Vec<Span>) -> Self {
-
         let one_day = Days::new(1);
+        //multiplayable one day
+        let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
 
         let mut days: Vec<Day> = Vec::new();
-        
+
         let (start_date, end_date) = spans[0].get_dates();
-        let mut current_date = start_date.clone();
+        let current_date = start_date.clone();
 
         for i in 0..=(start_date - end_date).num_days() {
-            
             days.push(Day {
                 date: current_date,
                 passed: true,
             });
-            current_date.checked_add_days(one_day);
-
+            current_date.checked_add_days(one_day).unwrap();
         }
 
         for i in 1..spans.len() {
+            //if i'th span is within already existing dates
+            if parse_date(&spans[i].start_date) > days[0].date
+            && parse_date(&spans[i].end_date) < days.last().unwrap().date {
+                continue;
+            }
+            //if i'th span start date is before o'th day
             if parse_date(&spans[i].start_date) < days[0].date {
-                
+                let excess = (days[0].date - parse_date(&spans[i].start_date)).num_days();
+                days.insert(0, 
+                    Day {
+                        date: parse_date(&spans[i].start_date),
+                        passed: true,
+                    });
+                for i in 1..excess - 1 {
+                    days.insert(i as usize, Day {
+                        date:  days[0].date + one_time_delta.checked_mul(i as i32).unwrap(),
+                        passed: true,
+                    }
+                );
+                }
+            }
+            //if i'th span end date is after last day
+            if parse_date(&spans[i].end_date) < days.last().unwrap().date {
+                let excess = (parse_date(&spans[i].end_date) - days.last().unwrap().date).num_days();
+                for i in 0..excess {
+                    days.push(Day {
+                        date: days.last().unwrap().date + one_time_delta,
+                        passed: true,
+                    });
+                }
             }
         }
 
-        todo!()
+        Self { days }
+        
     }
-
 }
 
 pub struct Day {
     date: NaiveDate,
     passed: bool,
 }
-
-
