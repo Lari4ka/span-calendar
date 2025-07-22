@@ -1,9 +1,11 @@
 use std::time::Duration;
 
 use chrono::naive::NaiveDate;
+use chrono::Datelike;
 use chrono::Days;
 use chrono::Local;
 use chrono::TimeDelta;
+use chrono::Weekday;
 use dioxus::launch;
 use dioxus::logger::tracing::span;
 use dioxus::prelude::*;
@@ -311,6 +313,24 @@ pub struct Calendar {
 }
 
 impl Calendar {
+
+    fn fit(&mut self) {
+
+        let now = Local::now().weekday();
+        let index = self.days.iter().rposition(|day| day.passed).unwrap() as u32;
+
+        // To always know what weekday it is the first element should be Monday.
+        // We know current day index and what weekday it is.
+        // We know that if the 0'th day is Monday, reimainder of index and weekday will be 0
+        // So until reminder of index and weekday is not 0, we insert days previous to 0'th day into vec
+        while index % 7 != now.days_since(Weekday::Mon) {
+            self.days.insert(0, Day {
+                date: self.days[0].date.checked_sub_days(Days::new(1)).unwrap(),
+                passed: true,
+            });
+        }
+    }
+
     fn mark_passed(&mut self) {
         self.days
             .iter_mut()
@@ -331,7 +351,7 @@ impl Calendar {
         for i in 0..=(start_date - end_date).num_days() {
             days.push(Day {
                 date: current_date,
-                passed: true,
+                passed: false,
             });
             current_date.checked_add_days(one_day).unwrap();
         }
@@ -348,12 +368,12 @@ impl Calendar {
                 days.insert(0, 
                     Day {
                         date: parse_date(&spans[i].start_date),
-                        passed: true,
+                        passed: false,
                     });
                 for i in 1..excess - 1 {
                     days.insert(i as usize, Day {
                         date:  days[0].date + one_time_delta.checked_mul(i as i32).unwrap(),
-                        passed: true,
+                        passed: false,
                     }
                 );
                 }
@@ -364,7 +384,7 @@ impl Calendar {
                 for i in 0..excess {
                     days.push(Day {
                         date: days.last().unwrap().date + one_time_delta,
-                        passed: true,
+                        passed: false,
                     });
                 }
             }
