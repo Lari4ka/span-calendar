@@ -8,7 +8,6 @@ use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-
     let app = Router::new()
         .route("/get_spans", get(get_spans))
         .route("/add_span", post(add_span))
@@ -24,7 +23,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
-
     let connection = rusqlite::Connection::open("./spans.db3").unwrap();
 
     let mut stmt = connection.prepare("SELECT MAX(id) FROM spans").unwrap();

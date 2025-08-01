@@ -5,10 +5,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 20px;
 }
-hr.vertical_line {
-    width: 100%;
-    transform: rotate(90deg);
-}
+
 .span-component {
     background-color: rgb(10, 94, 55);
     border: 2px solid green;
@@ -46,4 +43,26 @@ hr.vertical_line {
     align-items: center;
     flex-direction: row;
     margin: auto;
+}
+.week_container {
+    width: 100%;
+    display: flex;
+}
+.passed_day_container,
+.day_container {
+    width: 100%;
+    display: flex;
+    border: solid white;
+    color: #0f1116;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    margin: auto;
+}
+.day_container {
+    background-color: aquamarine;
+}
+.passed_day_container {
+    background-color: green;
+    color: black;
 }

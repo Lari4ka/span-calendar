@@ -1,13 +1,13 @@
 use std::time::Duration;
+use std::vec;
 
 use chrono::naive::NaiveDate;
 use chrono::Datelike;
 use chrono::Days;
 use chrono::Local;
 use chrono::TimeDelta;
-use chrono::Weekday;
 use dioxus::launch;
-use dioxus::logger::tracing::span;
+use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 
 const CSS: Asset = asset!("/assets/main.css");
@@ -36,23 +36,37 @@ fn Main() -> Element {
 
     //spans container
     let mut spans = use_signal(Vec::<Span>::new);
+    let mut calendar = use_signal(|| Calendar::default());
 
     //fill spans container from db
     use_future(move || async move {
-        for span in get_spans().await {
-            spans.write().push(span);
-        }
+        let vec = get_spans().await;
+        calendar.set(Calendar::new(&vec));
+        spans.set(vec);
     });
-
     rsx! {
-        hr { class: "vertical_line" }
+        //hr { class: "vertical_line" }
         CurrentTimeComponent {  }
         MenuComponent { toggle_add_form },
+
         if toggle_add_form() {
             AddSpanComponent { start_date, end_date, name, toggle_add_form, spans }
         }
+        //Test { spans }
         SpansComponent { spans }
-        Year {  }
+        CalendarComponent { calendar }
+    }
+}
+
+#[component]
+fn Test(spans: Signal<Vec<Span>>) -> Element {
+    let thing = ReadableVecExt::iter(&spans);
+
+    let other_thing: Vec<Span> = thing.map(|span| span.clone().to_owned()).collect();
+    rsx! {
+        div {
+            "{other_thing[0]:?}"
+        }
     }
 }
 
@@ -149,11 +163,18 @@ fn AddSpanComponent(
                         class: "add_span_button",
                         onclick: move |_| async move {
 
+                            if parse_date(&end_date()) < parse_date(&start_date()) {
+                                info!("swapped dates");
+                                let temp = end_date();
+                                end_date.set(start_date());
+                                start_date.set(temp);
+                            }
+
                             let add_result = add_span(start_date(), end_date(), name()).await;
 
                             match add_result {
                                 Some(span) => {
-                                    spans.push(span);
+                                    spans.write().push(span);
                                     toggle_error.set(false);
                                 }
                                 None => {
@@ -179,6 +200,8 @@ fn AddSpanComponent(
 
 #[component]
 fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
+    //let val2 = &val[0];
+
     rsx! {
         for span in spans() {
             div {
@@ -211,11 +234,26 @@ fn ErrorComponent() -> Element {
 }
 
 #[component]
-fn Year() -> Element {
+fn CalendarComponent(calendar: Signal<Calendar>) -> Element {
+    let days: Vec<Day> = calendar().days;
+    info!("days: {:?}", days);
     rsx! {
-        table {
-            for i in 0..=7 {
-                td { "{i}" }
+        for i in 0..days.len() / 7 {
+            div {
+                class: "week_container",
+                for j in 0..7 {
+                    if days[i * 7 + j].passed {
+                        div {
+                            class: "passed_day_container",
+                            "{days[i * 7 + j].date}"
+                        }
+                    } else {
+                        div {
+                            class: "day_container",
+                            "{days[i * 7 + j].date}"
+                        }
+                    }
+                }
             }
         }
     }
@@ -264,6 +302,7 @@ async fn send_to_server(span: &Span) -> u64 {
 }
 
 async fn get_spans() -> Vec<Span> {
+    info!("eeeeeeeeee");
     //get all spans from db on first launch of page
     reqwest::get("http://127.0.0.1:8081/get_spans")
         .await
@@ -274,26 +313,16 @@ async fn get_spans() -> Vec<Span> {
 }
 
 fn parse_date(date_str: &str) -> NaiveDate {
-    NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").unwrap()
+    match NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
+        Ok(date) => return date,
+        Err(e) => {
+            info!("error: {:?}", e);
+            NaiveDate::parse_from_str("2000-10-10", "%Y-%m-%d").unwrap()
+        }
+    }
 }
 
-fn elapsed(span: Span) -> i64 {
-    let start_date = parse_date(&span.start_date);
-    let end_date = parse_date(&span.end_date);
-
-    let duration = (end_date - start_date).num_days().abs();
-    let now = Local::now().date_naive();
-
-    let elapsed = if start_date > end_date {
-        (now - end_date).num_days()
-    } else {
-        (now - start_date).num_days()
-    };
-
-    elapsed / duration
-}
-
-#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct Span {
     id: Option<u64>,
     name: String,
@@ -306,51 +335,53 @@ impl Span {
     fn get_dates(&self) -> (NaiveDate, NaiveDate) {
         (parse_date(&self.start_date), parse_date(&self.end_date))
     }
+    fn get_days_vec(&self) -> Vec<Day> {
+        let mut days = Vec::new();
+        let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
+        let (start_date, end_date) = self.get_dates();
+        for i in 0..(end_date - start_date).num_days() + 1 {
+            days.push(Day {
+                date: start_date + (one_time_delta * i as i32),
+                passed: false,
+            });
+        }
+        days.iter_mut()
+            .filter(|day| day.date < Local::now().date_naive())
+            .for_each(|day| day.passed = true);
+        days
+    }
 }
 
+#[derive(PartialEq, Clone, Debug)]
 pub struct Calendar {
     days: Vec<Day>,
 }
 
 impl Calendar {
-
-    fn fit(&mut self) {
-
-        let now = Local::now().weekday();
-        let index = self.days.iter().rposition(|day| day.passed).unwrap() as u32;
-
-        // To always know what weekday it is the first element should be Monday.
-        // We know current day index and what weekday it is.
-        // We know that if the 0'th day is Monday, reimainder of index and weekday will be 0
-        // So until reminder of index and weekday is not 0, we insert days previous to 0'th day into vec
-        while index % 7 != now.days_since(Weekday::Mon) {
-            self.days.insert(0, Day {
-                date: self.days[0].date.checked_sub_days(Days::new(1)).unwrap(),
-                passed: true,
-            });
-        }
+    fn default() -> Self {
+        Self { days: Vec::new() }
     }
 
-    fn mark_passed(&mut self) {
-        self.days
-            .iter_mut()
-            .filter(|day| day.date < Local::now().date_naive())
-            .for_each(|day| day.passed = true);
-    }
-
-    fn new(spans: Vec<Span>) -> Self {
+    fn new(spans: &Vec<Span>) -> Calendar {
         let one_day = Days::new(1);
-        //multiplayable one day
+        //multiplyable one day
         let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
 
         let mut days: Vec<Day> = Vec::new();
-
-        let (start_date, end_date) = spans[0].get_dates();
+        let (start_date, end_date) = spans.first().unwrap().get_dates();
         let current_date = start_date.clone();
-
-        for i in 0..=(start_date - end_date).num_days() {
+        days.push(Day {
+            date: start_date,
+            passed: false,
+        });
+        for _i in 1..(end_date - start_date).num_days() + 1 {
             days.push(Day {
-                date: current_date,
+                date: days
+                    .last()
+                    .unwrap()
+                    .date
+                    .checked_add_days(Days::new(1))
+                    .unwrap(),
                 passed: false,
             });
             current_date.checked_add_days(one_day).unwrap();
@@ -358,43 +389,112 @@ impl Calendar {
 
         for i in 1..spans.len() {
             //if i'th span is within already existing dates
-            if parse_date(&spans[i].start_date) > days[0].date
-            && parse_date(&spans[i].end_date) < days.last().unwrap().date {
+            if parse_date(&spans[i].start_date) > days.first().unwrap().date
+                && parse_date(&spans[i].end_date) < days.last().unwrap().date
+            {
                 continue;
             }
             //if i'th span start date is before o'th day
             if parse_date(&spans[i].start_date) < days[0].date {
                 let excess = (days[0].date - parse_date(&spans[i].start_date)).num_days();
-                days.insert(0, 
+                days.insert(
+                    0,
                     Day {
                         date: parse_date(&spans[i].start_date),
                         passed: false,
-                    });
-                for i in 1..excess - 1 {
-                    days.insert(i as usize, Day {
-                        date:  days[0].date + one_time_delta.checked_mul(i as i32).unwrap(),
-                        passed: false,
-                    }
+                    },
                 );
+                for i in 1..excess - 1 {
+                    days.insert(
+                        i as usize,
+                        Day {
+                            date: days[0].date + one_time_delta.checked_mul(i as i32).unwrap(),
+                            passed: if days[0].date + one_time_delta.checked_mul(i as i32).unwrap()
+                                > Local::now().date_naive()
+                            {
+                                false
+                            } else {
+                                true
+                            },
+                        },
+                    );
                 }
             }
             //if i'th span end date is after last day
             if parse_date(&spans[i].end_date) < days.last().unwrap().date {
-                let excess = (parse_date(&spans[i].end_date) - days.last().unwrap().date).num_days();
-                for i in 0..excess {
+                let excess =
+                    (parse_date(&spans[i].end_date) - days.last().unwrap().date).num_days();
+                for _i in 0..excess {
                     days.push(Day {
                         date: days.last().unwrap().date + one_time_delta,
-                        passed: false,
+                        passed: if days.last().unwrap().date + one_time_delta
+                            > Local::now().date_naive()
+                        {
+                            false
+                        } else {
+                            true
+                        },
                     });
                 }
             }
         }
 
+        let month_code = vec![1, 4, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
+        let leap_year_month_code = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
+        let weekdays = vec![6, 0, 1, 2, 3, 4, 5];
+        let year = Local::now().year();
+        let is_leap_year = (year % 4 == 0 || year % 400 == 0) && year % 100 != 0;
+        // valid only in 21st century
+        let year_code = (6 + year % 100 + (year % 100) / 4) & 7;
+        //curent day of month
+        let day0 = days.first().unwrap().date.day0() + 1;
+        //current month
+        let month0 = days.first().unwrap().date.month0();
+        //formula to get weekday number
+        let first_day = if !is_leap_year {
+            (day0 + month_code[month0 as usize] + year_code as u32) % 7
+        } else {
+            (day0 + leap_year_month_code[month0 as usize] + year_code as u32) % 7
+        };
+        //make first day Monday
+        for _i in 0..weekdays[first_day as usize] {
+            days.insert(
+                0,
+                Day {
+                    date: days
+                        .first()
+                        .unwrap()
+                        .date
+                        .checked_sub_days(Days::new(1))
+                        .unwrap(),
+                    passed: false,
+                },
+            );
+        }
+        // make last day Sunday
+        if days.len() % 7 != 0 {
+            for _i in 0..days.len() % 7 + 1 {
+                days.push(Day {
+                    date: days
+                        .last()
+                        .unwrap()
+                        .date
+                        .checked_add_days(Days::new(1))
+                        .unwrap(),
+                    passed: false,
+                });
+            }
+        }
+
+        days.iter_mut()
+            .filter(|day| day.date < Local::now().date_naive())
+            .for_each(|day| day.passed = true);
+
         Self { days }
-        
     }
 }
 
+#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct Day {
     date: NaiveDate,
     passed: bool,
