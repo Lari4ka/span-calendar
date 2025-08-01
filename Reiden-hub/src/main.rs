@@ -363,81 +363,33 @@ impl Calendar {
     }
 
     fn new(spans: &Vec<Span>) -> Calendar {
-        let one_day = Days::new(1);
-        //multiplyable one day
         let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
+        let now = Local::now().date_naive();
 
-        let mut days: Vec<Day> = Vec::new();
-        let (start_date, end_date) = spans.first().unwrap().get_dates();
-        let current_date = start_date.clone();
-        days.push(Day {
-            date: start_date,
-            passed: false,
-        });
-        for _i in 1..(end_date - start_date).num_days() + 1 {
-            days.push(Day {
-                date: days
-                    .last()
-                    .unwrap()
-                    .date
-                    .checked_add_days(Days::new(1))
-                    .unwrap(),
-                passed: false,
-            });
-            current_date.checked_add_days(one_day).unwrap();
+        let mut days = Vec::new();
+
+        for span in spans {
+            days.extend_from_slice(&span.get_days_vec());
         }
 
-        for i in 1..spans.len() {
-            //if i'th span is within already existing dates
-            if parse_date(&spans[i].start_date) > days.first().unwrap().date
-                && parse_date(&spans[i].end_date) < days.last().unwrap().date
-            {
-                continue;
-            }
-            //if i'th span start date is before o'th day
-            if parse_date(&spans[i].start_date) < days[0].date {
-                let excess = (days[0].date - parse_date(&spans[i].start_date)).num_days();
-                days.insert(
-                    0,
-                    Day {
-                        date: parse_date(&spans[i].start_date),
-                        passed: false,
-                    },
-                );
-                for i in 1..excess - 1 {
-                    days.insert(
-                        i as usize,
-                        Day {
-                            date: days[0].date + one_time_delta.checked_mul(i as i32).unwrap(),
-                            passed: if days[0].date + one_time_delta.checked_mul(i as i32).unwrap()
-                                > Local::now().date_naive()
-                            {
-                                false
-                            } else {
-                                true
-                            },
-                        },
-                    );
-                }
-            }
-            //if i'th span end date is after last day
-            if parse_date(&spans[i].end_date) < days.last().unwrap().date {
-                let excess =
-                    (parse_date(&spans[i].end_date) - days.last().unwrap().date).num_days();
-                for _i in 0..excess {
-                    days.push(Day {
-                        date: days.last().unwrap().date + one_time_delta,
-                        passed: if days.last().unwrap().date + one_time_delta
-                            > Local::now().date_naive()
-                        {
-                            false
-                        } else {
+        days.windows(2)
+            .filter(|window| {
+                window[0].date.checked_add_days(Days::new(1)).unwrap() != window[1].date
+            })
+            .map(|window| Vec::from(window))
+            .for_each(|mut window| {
+                let missing = (window[1].date - window[0].date).num_days();
+                for i in 0..missing {
+                    window.push(Day {
+                        date: window[0].date + one_time_delta * i as i32,
+                        passed: if (window[0].date + one_time_delta * i as i32) < now {
                             true
+                        } else {
+                            false
                         },
-                    });
+                    })
                 }
-            }
-        }
+            });
 
         let month_code = vec![1, 4, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
         let leap_year_month_code = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
@@ -485,10 +437,6 @@ impl Calendar {
                 });
             }
         }
-
-        days.iter_mut()
-            .filter(|day| day.date < Local::now().date_naive())
-            .for_each(|day| day.passed = true);
 
         Self { days }
     }
