@@ -236,7 +236,6 @@ fn ErrorComponent() -> Element {
 #[component]
 fn CalendarComponent(calendar: Signal<Calendar>) -> Element {
     let days: Vec<Day> = calendar().days;
-    info!("days: {:?}", days);
     rsx! {
         for i in 0..days.len() / 7 {
             div {
@@ -336,9 +335,11 @@ impl Span {
         (parse_date(&self.start_date), parse_date(&self.end_date))
     }
     fn get_days_vec(&self) -> Vec<Day> {
+
         let mut days = Vec::new();
         let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
         let (start_date, end_date) = self.get_dates();
+        
         for i in 0..(end_date - start_date).num_days() + 1 {
             days.push(Day {
                 date: start_date + (one_time_delta * i as i32),
@@ -346,7 +347,7 @@ impl Span {
             });
         }
         days.iter_mut()
-            .filter(|day| day.date < Local::now().date_naive())
+            .filter(|day| day.date <= Local::now().date_naive())
             .for_each(|day| day.passed = true);
         days
     }
@@ -363,33 +364,27 @@ impl Calendar {
     }
 
     fn new(spans: &Vec<Span>) -> Calendar {
-        let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
-        let now = Local::now().date_naive();
 
         let mut days = Vec::new();
 
         for span in spans {
             days.extend_from_slice(&span.get_days_vec());
         }
-
-        days.windows(2)
-            .filter(|window| {
-                window[0].date.checked_add_days(Days::new(1)).unwrap() != window[1].date
-            })
-            .map(|window| Vec::from(window))
-            .for_each(|mut window| {
-                let missing = (window[1].date - window[0].date).num_days();
-                for i in 0..missing {
-                    window.push(Day {
-                        date: window[0].date + one_time_delta * i as i32,
-                        passed: if (window[0].date + one_time_delta * i as i32) < now {
-                            true
-                        } else {
-                            false
-                        },
-                    })
+        //fill gaps
+        for i in 1..days.len() {
+            if days[i].date != days[i - 1].date.checked_add_days(Days::new(1)).unwrap() {
+                info!("GAP: {:?}-{:?}", days[i-1], days[i]);
+                let gap_length = (days[i].date - days[i - 1].date).num_days() as i32;
+                for j in 1..gap_length {
+                    let day = Day {
+                        date: days[i - 1].date.checked_add_days(Days::new(j as u64)).unwrap(),
+                        passed: false
+                    };
+                    //info!("DAY: {:?}", day);
+                    days.insert(i - 1 + j as usize, day);
                 }
-            });
+            }
+        }
 
         let month_code = vec![1, 4, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
         let leap_year_month_code = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
@@ -408,6 +403,7 @@ impl Calendar {
         } else {
             (day0 + leap_year_month_code[month0 as usize] + year_code as u32) % 7
         };
+        info!("first day: {}", first_day);
         //make first day Monday
         for _i in 0..weekdays[first_day as usize] {
             days.insert(
@@ -447,3 +443,4 @@ pub struct Day {
     date: NaiveDate,
     passed: bool,
 }
+
