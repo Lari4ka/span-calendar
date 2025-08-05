@@ -335,11 +335,10 @@ impl Span {
         (parse_date(&self.start_date), parse_date(&self.end_date))
     }
     fn get_days_vec(&self) -> Vec<Day> {
-
         let mut days = Vec::new();
         let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
         let (start_date, end_date) = self.get_dates();
-        
+
         for i in 0..(end_date - start_date).num_days() + 1 {
             days.push(Day {
                 date: start_date + (one_time_delta * i as i32),
@@ -364,7 +363,6 @@ impl Calendar {
     }
 
     fn new(spans: &Vec<Span>) -> Calendar {
-
         let mut days = Vec::new();
 
         for span in spans {
@@ -373,12 +371,14 @@ impl Calendar {
         //fill gaps
         for i in 1..days.len() {
             if days[i].date != days[i - 1].date.checked_add_days(Days::new(1)).unwrap() {
-                info!("GAP: {:?}-{:?}", days[i-1], days[i]);
                 let gap_length = (days[i].date - days[i - 1].date).num_days() as i32;
                 for j in 1..gap_length {
                     let day = Day {
-                        date: days[i - 1].date.checked_add_days(Days::new(j as u64)).unwrap(),
-                        passed: false
+                        date: days[i - 1]
+                            .date
+                            .checked_add_days(Days::new(j as u64))
+                            .unwrap(),
+                        passed: false,
                     };
                     //info!("DAY: {:?}", day);
                     days.insert(i - 1 + j as usize, day);
@@ -386,24 +386,32 @@ impl Calendar {
             }
         }
 
-        let month_code = vec![1, 4, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
-        let leap_year_month_code = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
+        let month_code: Vec<i32> = vec![0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5];
+        let leap_year_month_code: Vec<i32> = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
         let weekdays = vec![6, 0, 1, 2, 3, 4, 5];
         let year = Local::now().year();
         let is_leap_year = (year % 4 == 0 || year % 400 == 0) && year % 100 != 0;
-        // valid only in 21st century
-        let year_code = (6 + year % 100 + (year % 100) / 4) & 7;
         //curent day of month
-        let day0 = days.first().unwrap().date.day0() + 1;
+        let day0 = days.first().unwrap().date.day0() as i32 + 1;
         //current month
-        let month0 = days.first().unwrap().date.month0();
-        //formula to get weekday number
+        let month0 = days.first().unwrap().date.month0() as usize;
+        //formula to get weekday from date
         let first_day = if !is_leap_year {
-            (day0 + month_code[month0 as usize] + year_code as u32) % 7
+            (day0
+                + month_code[month0]
+                + 5 * ((year - 1) % 4)
+                + 4 * ((year - 1) % 100)
+                + 6 * ((year - 1) % 400))
+                % 7
         } else {
-            (day0 + leap_year_month_code[month0 as usize] + year_code as u32) % 7
+            (day0
+                + leap_year_month_code[month0]
+                + 5 * ((year - 1) % 4)
+                + 4 * ((year - 1) % 100)
+                + 6 * ((year - 1) % 400))
+                % 7
         };
-        info!("first day: {}", first_day);
+
         //make first day Monday
         for _i in 0..weekdays[first_day as usize] {
             days.insert(
@@ -443,4 +451,3 @@ pub struct Day {
     date: NaiveDate,
     passed: bool,
 }
-
