@@ -48,10 +48,10 @@ body {
     width: 100%;
     display: flex;
 }
-.passed_day_container,
-.day_container {
+.day_container,
+.passed_day_container {
     width: 100%;
-    display: flex;
+    display: inline-block;
     border: solid white;
     color: #0f1116;
     justify-content: center;
@@ -63,6 +63,31 @@ body {
     background-color: aquamarine;
 }
 .passed_day_container {
-    background-color: green;
+    background-color: chartreuse;
+    display: inline-block;
+    height: auto;
+}
+.dropbutton {
+    border: solid white;
+    background-color: inherit;
+    width: 100%;
+    height: 100%;
+}
+.dropdown_content {
+    display: none;
+    position: absolute;
+    z-index: 1;
+    width: 13.5%;
+    overflow: auto;
+    background-color: cornflowerblue;
+}
+.dropdown_content a {
     color: black;
+    display: block;
+}
+.passed_day_container:hover .dropdown_content {
+    display: block;
+}
+.day_container:hover .dropdown_content {
+    display: block;
 }

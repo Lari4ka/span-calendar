@@ -244,12 +244,38 @@ fn CalendarComponent(calendar: Signal<Calendar>) -> Element {
                     if days[i * 7 + j].passed {
                         div {
                             class: "passed_day_container",
-                            "{days[i * 7 + j].date}"
+                            button {
+                                class: "dropbutton",
+                                "{days[i * 7 + j].date}",
+                            }
+                            div {
+                                class: "dropdown_content",
+                                if !days[i * 7 + j].included_in.is_none() {
+                                        for span in days[i * 7 + j].included_in.as_ref().unwrap() {
+                                            a {
+                                                "{span.name}"
+                                        }
+                                    }
+                                }
+                            }
                         }
                     } else {
                         div {
                             class: "day_container",
-                            "{days[i * 7 + j].date}"
+                            button {
+                                class: "dropbutton",
+                                "{days[i * 7 + j].date}",
+                            }
+                            div {
+                                class: "dropdown_content",
+                                if !days[i * 7 + j].included_in.is_none() {
+                                        for span in days[i * 7 + j].included_in.as_ref().unwrap() {
+                                            a {
+                                                "{span.name}"
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -321,13 +347,21 @@ fn parse_date(date_str: &str) -> NaiveDate {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct Span {
     id: Option<u64>,
     name: String,
     start_date: String,
     end_date: String,
     duration: i64,
+}
+
+impl<'a> FromIterator<&'a Span> for Vec<Span> {
+    fn from_iter<T: for<'b> IntoIterator<Item = &'a Span>>(iter: T) -> Self {
+        iter.into_iter()
+            .map(|span| span.clone())
+            .collect::<Vec<Span>>()
+    }
 }
 
 impl Span {
@@ -343,6 +377,7 @@ impl Span {
             days.push(Day {
                 date: start_date + (one_time_delta * i as i32),
                 passed: false,
+                included_in: None,
             });
         }
         days.iter_mut()
@@ -379,12 +414,16 @@ impl Calendar {
                             .checked_add_days(Days::new(j as u64))
                             .unwrap(),
                         passed: false,
+                        included_in: None,
                     };
                     //info!("DAY: {:?}", day);
                     days.insert(i - 1 + j as usize, day);
                 }
             }
         }
+
+        days.sort();
+        days.dedup();
 
         let month_code: Vec<i32> = vec![0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5];
         let leap_year_month_code: Vec<i32> = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
@@ -424,6 +463,7 @@ impl Calendar {
                         .checked_sub_days(Days::new(1))
                         .unwrap(),
                     passed: false,
+                    included_in: None,
                 },
             );
         }
@@ -438,16 +478,29 @@ impl Calendar {
                         .checked_add_days(Days::new(1))
                         .unwrap(),
                     passed: false,
+                    included_in: None,
                 });
             }
+        }
+
+        for day in days.iter_mut() {
+            let spans = spans
+                .iter()
+                .filter(|span| {
+                    day.date >= parse_date(&span.start_date)
+                        && day.date <= parse_date(&span.end_date)
+                })
+                .collect::<Vec<Span>>();
+            day.included_in = Some(spans);
         }
 
         Self { days }
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
 pub struct Day {
     date: NaiveDate,
     passed: bool,
+    included_in: Option<Vec<Span>>,
 }
