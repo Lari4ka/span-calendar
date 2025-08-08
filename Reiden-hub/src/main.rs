@@ -26,6 +26,8 @@ fn App() -> Element {
 
 #[component]
 fn Main() -> Element {
+    //user
+    let user = use_signal(User::default);
     //togle add span menu
     let toggle_add_form = use_signal(|| false);
 
@@ -39,33 +41,24 @@ fn Main() -> Element {
     let mut calendar = use_signal(|| Calendar::default());
 
     //fill spans container from db
-    use_future(move || async move {
-        let vec = get_spans().await;
-        calendar.set(Calendar::new(&vec));
-        spans.set(vec);
-    });
-    rsx! {
-        //hr { class: "vertical_line" }
-        CurrentTimeComponent {  }
-        MenuComponent { toggle_add_form },
-
-        if toggle_add_form() {
-            AddSpanComponent { start_date, end_date, name, toggle_add_form, spans }
-        }
-        //Test { spans }
-        SpansComponent { spans }
-        CalendarComponent { calendar }
+    if !user().anonymous {
+        use_future(move || async move {
+            let vec = get_spans(&user()).await;
+            calendar.set(Calendar::new(&vec));
+            spans.set(vec);
+        });
     }
-}
-
-#[component]
-fn Test(spans: Signal<Vec<Span>>) -> Element {
-    let thing = ReadableVecExt::iter(&spans);
-
-    let other_thing: Vec<Span> = thing.map(|span| span.clone().to_owned()).collect();
     rsx! {
-        div {
-            "{other_thing[0]:?}"
+        if user().anonymous { LogIn { user } }
+        else {
+            CurrentTimeComponent {  }
+            MenuComponent { toggle_add_form },
+
+            if toggle_add_form() {
+                AddSpanComponent { start_date, end_date, name, toggle_add_form, spans, user }
+            }
+            SpansComponent { spans }
+            CalendarComponent { calendar }
         }
     }
 }
@@ -113,6 +106,54 @@ fn CurrentTimeComponent() -> Element {
     }
 }
 
+#[component]
+fn LogIn(user: Signal<User>) -> Element {
+    let mut name = use_signal(String::new);
+    let mut password = use_signal(String::new);
+    let mut toggle_error = use_signal(|| false);
+    rsx! {
+        div {
+            class: "user_inputs_container",
+            input {
+                id: "name_input",
+                type: "text",
+                placeholder: "name",
+                oninput: move |input| {
+                    name.set(input.value());
+                }
+            }
+            input {
+                id: "password_input",
+                type: "text",
+                placeholder: "password",
+                oninput: move |input| {
+                    password.set(input.value());
+                }
+            }
+            button {
+                id: "submit_button",
+                onclick: move |_| async move {
+
+                    let potential_user = User::new(name(), password());
+
+                    let log_in_result = UserSQL::validate(UserSQL::new(potential_user)).await;
+
+                    match log_in_result {
+                        Some(id) => {
+                            user().id = Some(id as u64);
+                            user().anonymous = false;
+                        },
+                        None => toggle_error.set(true),
+                    }
+                }
+            }
+            if toggle_error() {
+                LogInErrorComponent {}
+            }
+        }
+    }
+}
+
 //add span menu
 #[component]
 fn AddSpanComponent(
@@ -121,78 +162,75 @@ fn AddSpanComponent(
     name: Signal<String>,
     toggle_add_form: Signal<bool>,
     spans: Signal<Vec<Span>>,
+    user: Signal<User>,
 ) -> Element {
     let mut toggle_error = use_signal(|| false);
 
     rsx! {
         main {
             div {
-                div {
-                    input {
-                        class: "input_container",
-                        type: "date",
-                        placeholder: "start date",
-                        oninput: move |input| {
-                            println!("there");
-                            start_date.set(input.value());
-                        },
-                    }
+                input {
+                    class: "input_container",
+                    type: "date",
+                    placeholder: "start date",
+                    oninput: move |input| {
+                        start_date.set(input.value());
+                    },
                 }
-                div {
-                    input {
-                        class: "input_container",
-                        type: "date",
-                        placeholder: "end date",
-                        oninput: move |input| {
-                            end_date.set(input.value());
-                        },
-                    }
+            }
+            div {
+                input {
+                    class: "input_container",
+                    type: "date",
+                    placeholder: "end date",
+                    oninput: move |input| {
+                        end_date.set(input.value());
+                    },
                 }
-                div {
-                    input {
-                        class: "input_container",
-                        type: "text",
-                        placeholder: "name",
-                        oninput: move |input| {
-                            name.set(input.value());
-                        },
-                    }
+            }
+            div {
+                input {
+                    class: "input_container",
+                    type: "text",
+                    placeholder: "name",
+                    oninput: move |input| {
+                        name.set(input.value());
+                    },
                 }
-                div {
-                    button {
-                        class: "add_span_button",
-                        onclick: move |_| async move {
+            }
+            div {
+                button {
+                    class: "add_span_button",
+                    onclick: move |_| async move {
 
-                            if parse_date(&end_date()) < parse_date(&start_date()) {
-                                info!("swapped dates");
-                                let temp = end_date();
-                                end_date.set(start_date());
-                                start_date.set(temp);
+                        if parse_date(&end_date()) < parse_date(&start_date()) {
+                            let temp = end_date();
+                            end_date.set(start_date());
+                            start_date.set(temp);
+                        }
+
+                        let add_result = add_span(start_date(), end_date(), name(), &user()).await;
+
+                        match add_result {
+                            Some(span) => {
+                                spans.write().push(span);
+                                toggle_error.set(false);
                             }
-
-                            let add_result = add_span(start_date(), end_date(), name()).await;
-
-                            match add_result {
-                                Some(span) => {
-                                    spans.write().push(span);
-                                    toggle_error.set(false);
-                                }
-                                None => {
-                                    toggle_error.set(true);
-                                    start_date.set(String::new());
-                                    end_date.set(String::new());
-                                }
+                            None => {
+                                toggle_error.set(true);
+                                start_date.set(String::new());
+                                end_date.set(String::new());
                             }
+                        }
 
-                            //turn off add span menu
-                            toggle_add_form.set(false);
-                        },
-                        "add",
-                    }
+                        //turn off add span menu
+                        toggle_add_form.set(false);
+                    },
+                    "add",
                 }
-                if toggle_error() {
-                    ErrorComponent {}
-                }
+            }
+            if toggle_error() {
+                ErrorComponent {}
             }
         }
     }
@@ -200,8 +238,6 @@ fn AddSpanComponent(
 
 #[component]
 fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
-    //let val2 = &val[0];
-
     rsx! {
         for span in spans() {
             div {
@@ -229,6 +265,16 @@ fn ErrorComponent() -> Element {
         div {
             class: "error_component",
             "Span must be longer than 1 day"
+        }
+    }
+}
+
+#[component]
+fn LogInErrorComponent() -> Element {
+    rsx! {
+        div {
+            class: "error_component",
+            "log in error: go fuck yourself"
         }
     }
 }
@@ -284,7 +330,7 @@ fn CalendarComponent(calendar: Signal<Calendar>) -> Element {
     }
 }
 
-async fn add_span(start_date: String, end_date: String, name: String) -> Option<Span> {
+async fn add_span(start_date: String, end_date: String, name: String, user: &User) -> Option<Span> {
     let parsed_start = parse_date(&start_date);
     let parsed_end = parse_date(&end_date);
 
@@ -300,6 +346,7 @@ async fn add_span(start_date: String, end_date: String, name: String) -> Option<
         start_date,
         end_date,
         duration,
+        created_by: user.id.unwrap(),
     };
 
     let id = send_to_server(&span).await;
@@ -326,10 +373,12 @@ async fn send_to_server(span: &Span) -> u64 {
     id
 }
 
-async fn get_spans() -> Vec<Span> {
-    info!("eeeeeeeeee");
+async fn get_spans(user: &User) -> Vec<Span> {
     //get all spans from db on first launch of page
-    reqwest::get("http://127.0.0.1:8081/get_spans")
+    reqwest::Client::new()
+        .post("http://127.0.0.1:8081/log_in")
+        .json(user)
+        .send()
         .await
         .unwrap()
         .json()
@@ -347,13 +396,80 @@ fn parse_date(date_str: &str) -> NaiveDate {
     }
 }
 
-#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct User {
+    id: Option<u64>,
+    anonymous: bool,
+    name: String,
+    password: Option<String>,
+}
+
+impl Default for User {
+    fn default() -> Self {
+        Self {
+            id: Some(0),
+            anonymous: true,
+            name: "guest".to_string(),
+            password: None,
+        }
+    }
+}
+
+impl User {
+    fn new(name: String, password: String) -> Self {
+        Self {
+            id: None,
+            anonymous: false,
+            name,
+            password: Some(password),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct UserSQL {
+    name: String,
+    password: String,
+}
+
+impl UserSQL {
+    fn new(user: User) -> Self {
+        Self {
+            name: user.name,
+            password: user.password.unwrap(),
+        }
+    }
+
+    async fn validate(user: UserSQL) -> Option<i32> {
+        // send name and supposed password and get log_in result
+        let returned = reqwest::Client::new()
+            .post("http://127.0.0.1:8081/log_in")
+            .json(&user)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+
+        if returned >= 0 {
+            return Some(returned);
+        } else {
+            return None;
+        }
+    }
+}
+
+#[derive(
+    Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize,
+)]
 pub struct Span {
     id: Option<u64>,
     name: String,
     start_date: String,
     end_date: String,
     duration: i64,
+    created_by: u64,
 }
 
 impl<'a> FromIterator<&'a Span> for Vec<Span> {

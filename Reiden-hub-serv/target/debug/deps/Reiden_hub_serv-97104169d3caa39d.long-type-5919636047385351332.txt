@@ -1,0 +1,2 @@
+fn(std::string::String, std::string::String) -> impl Future<Output = impl IntoResponse> {log_in}
+fn(std::string::String, std::string::String) -> impl Future<Output = impl IntoResponse> {log_in}: Handler<_, _>

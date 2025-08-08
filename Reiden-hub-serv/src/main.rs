@@ -11,6 +11,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = Router::new()
         .route("/get_spans", get(get_spans))
         .route("/add_span", post(add_span))
+        .route("/log_in", post(log_in))
         .layer(CorsLayer::permissive());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8081")
@@ -20,6 +21,51 @@ async fn main() -> Result<(), Box<dyn Error>> {
     axum::serve(listener, app).await.unwrap();
 
     Ok(())
+}
+
+async fn log_in(Json(user): Json<UserSQL>) -> impl IntoResponse {
+    if !is_valid_login(user.name, user.password) {
+        return Json(-1);
+    } else {
+
+        let connection = rusqlite::Connection::open("./users.db3").unwrap();
+        let mut statement = connection.prepare("SELECT MAX(id) FROM users").unwrap();
+        let query = statement.query_one([], |row| row.get(0));
+        let id = match query {
+            Err(rusqlite::Error::QueryReturnedMoreThanOneRow) => -1,
+            Err(rusqlite::Error::QueryReturnedNoRows) => -1,
+            Err(_) => -1,
+            Ok(num) => num,
+        };
+        
+        Json(id)
+
+    }
+}
+
+fn is_valid_login(name: String, password: String) -> bool {
+    let connection = rusqlite::Connection::open("./users.db3").unwrap();
+
+    let sql = format!(
+        "
+    SELECT password FROM users WHERE name = \"{}\"
+    ",
+        name
+    );
+
+    let mut statement = connection.prepare(&sql).unwrap();
+
+    let query = statement.query_one([], |row| row.get(0));
+
+    let password_from_sql: String;
+
+    match query {
+        Err(_) => return false,
+        Ok(password) => password_from_sql = password,
+    }
+
+    password == password_from_sql
+
 }
 
 async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
@@ -62,11 +108,12 @@ VALUES (
     Json(id)
 }
 
-async fn get_spans() -> impl IntoResponse {
+async fn get_spans(Json(user): Json<User>) -> impl IntoResponse {
     let con = rusqlite::Connection::open("./spans.db3").unwrap();
+    let sql = format!("SELECT id, name, start_date, end_date, duration FROM spans WHERE created_by = {}", user.id);
 
     let mut stm = con
-        .prepare("SELECT id, name, start_date, end_date, duration FROM spans")
+        .prepare(&sql)
         .unwrap();
     // get span data from db
     let rows = stm
@@ -77,6 +124,7 @@ async fn get_spans() -> impl IntoResponse {
                 start_date: row.get(2).unwrap(),
                 end_date: row.get(3).unwrap(),
                 duration: row.get(4).unwrap(),
+                created_by: row.get(5).unwrap(),
             })
         })
         .unwrap();
@@ -96,4 +144,37 @@ pub struct Span {
     start_date: String,
     end_date: String,
     duration: i64,
+    created_by: u64,
 }
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct User {
+    id: u64,
+    anonymous: bool,
+    name: String,
+}
+
+impl Default for User {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            anonymous: true,
+            name: "guest".to_string()
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct UserSQL {
+    name: String,
+    password: String,
+}
+// генианальный план:
+// у сука юзер структа нет порноля
+// а в дб есть
+// и просто на попытке входа
+// брать в клиенте
+// юзеримя и порноль
+// отправлять на сервер
+// брать порноль из дб по юзеримя
+// и если порноли не совпадают то слать нахуй
