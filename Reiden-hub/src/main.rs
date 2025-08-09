@@ -28,6 +28,7 @@ fn App() -> Element {
 fn Main() -> Element {
     //user
     let user = use_signal(User::default);
+    let logged_in = use_signal(|| false);
     //togle add span menu
     let toggle_add_form = use_signal(|| false);
 
@@ -41,17 +42,18 @@ fn Main() -> Element {
     let mut calendar = use_signal(|| Calendar::default());
 
     //fill spans container from db
-    if !user().anonymous {
-        use_future(move || async move {
+    let _ = use_resource(move || async move {
+        if logged_in() && !user().anonymous {
             let vec = get_spans(&user()).await;
             calendar.set(Calendar::new(&vec));
             spans.set(vec);
-        });
-    }
+        }
+    });
+
     rsx! {
-        if user().anonymous { LogIn { user } }
+        CurrentTimeComponent {  }
+        if !logged_in() { LogInOrRegister { user, logged_in } }
         else {
-            CurrentTimeComponent {  }
             MenuComponent { toggle_add_form },
 
             if toggle_add_form() {
@@ -107,10 +109,11 @@ fn CurrentTimeComponent() -> Element {
 }
 
 #[component]
-fn LogIn(user: Signal<User>) -> Element {
+fn LogInOrRegister(user: Signal<User>, logged_in: Signal<bool>) -> Element {
     let mut name = use_signal(String::new);
     let mut password = use_signal(String::new);
-    let mut toggle_error = use_signal(|| false);
+    let mut toggle_log_in_error = use_signal(|| false);
+    let mut toggle_register_error = use_signal(|| false);
     rsx! {
         div {
             class: "user_inputs_container",
@@ -119,6 +122,7 @@ fn LogIn(user: Signal<User>) -> Element {
                 type: "text",
                 placeholder: "name",
                 oninput: move |input| {
+                    info!("name: {}", input.value());
                     name.set(input.value());
                 }
             }
@@ -127,29 +131,54 @@ fn LogIn(user: Signal<User>) -> Element {
                 type: "text",
                 placeholder: "password",
                 oninput: move |input| {
+                    info!("password: {}", input.value());
                     password.set(input.value());
                 }
             }
             button {
-                id: "submit_button",
+                id: "log_in_button",
                 onclick: move |_| async move {
 
                     let potential_user = User::new(name(), password());
 
                     let log_in_result = UserSQL::validate(UserSQL::new(potential_user)).await;
 
-                    match log_in_result {
+                    if log_in_result {
+                        let write = user.write();
+                        let mut deref = write;
+                        deref.anonymous = false;
+                        logged_in.set(true);
+                    } else {
+                        toggle_log_in_error.set(true);
+                    }
+
+                },
+                "Log In",
+            }
+            button {
+                id: "register_button",
+                onclick: move |_| async move {
+
+                    let potential_user = User::new(name(), password());
+                    let register_result = UserSQL::register(UserSQL::new(potential_user)).await;
+
+                    info!("register result: {:?}", register_result);
+
+                    match register_result {
                         Some(id) => {
                             user().id = Some(id as u64);
                             user().anonymous = false;
+                            logged_in.set(true);
+                            info!("registered: {:?}", user);
                         },
-                        None => toggle_error.set(true),
+                        None => toggle_register_error.set(true),
                     }
-                }
+                },
+                "register",
             }
-            if toggle_error() {
-                LogInErrorComponent {}
-            }
+
+            if toggle_log_in_error() { LogInErrorComponent {} }
+            if toggle_register_error() { RegisterErrorComponent {} }
         }
     }
 }
@@ -229,9 +258,6 @@ fn AddSpanComponent(
                     "add",
                 }
             }
-            if toggle_error() {
-                ErrorComponent {}
-            }
         }
     }
 }
@@ -260,11 +286,20 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
 }
 
 #[component]
-fn ErrorComponent() -> Element {
+fn SpanErrorComponent() -> Element {
     rsx! {
         div {
-            class: "error_component",
-            "Span must be longer than 1 day"
+            id: "span_error_component",
+            "span must be longer than one day"
+        }
+    }
+}
+#[component]
+fn RegisterErrorComponent() -> Element {
+    rsx! {
+        div {
+            id: "register_error_component",
+            "register error"
         }
     }
 }
@@ -273,8 +308,8 @@ fn ErrorComponent() -> Element {
 fn LogInErrorComponent() -> Element {
     rsx! {
         div {
-            class: "error_component",
-            "log in error: go fuck yourself"
+            id: "log_in_error_component",
+            "Log in error",
         }
     }
 }
@@ -374,9 +409,10 @@ async fn send_to_server(span: &Span) -> u64 {
 }
 
 async fn get_spans(user: &User) -> Vec<Span> {
+    info!("query by: {:?}", user);
     //get all spans from db on first launch of page
     reqwest::Client::new()
-        .post("http://127.0.0.1:8081/log_in")
+        .post("http://127.0.0.1:8081/get_spans")
         .json(user)
         .send()
         .await
@@ -440,10 +476,10 @@ impl UserSQL {
         }
     }
 
-    async fn validate(user: UserSQL) -> Option<i32> {
-        // send name and supposed password and get log_in result
+    async fn register(user: UserSQL) -> Option<i32> {
+        info!("about to be signed up: {:?}", user);
         let returned = reqwest::Client::new()
-            .post("http://127.0.0.1:8081/log_in")
+            .post("http://127.0.0.1:8081/register")
             .json(&user)
             .send()
             .await
@@ -457,6 +493,21 @@ impl UserSQL {
         } else {
             return None;
         }
+    }
+
+    async fn validate(user: UserSQL) -> bool {
+        // send name and supposed password and get log_in result
+        let returned = reqwest::Client::new()
+            .post("http://127.0.0.1:8081/log_in")
+            .json(&user)
+            .send()
+            .await
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+
+        returned
     }
 }
 

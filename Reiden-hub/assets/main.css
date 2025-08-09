@@ -91,3 +91,8 @@ body {
 .day_container:hover .dropdown_content {
     display: block;
 }
+
+#log_in_button {
+    display: inline-block;
+    width: auto;
+}

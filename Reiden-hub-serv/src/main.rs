@@ -1,7 +1,7 @@
 use axum::response::IntoResponse;
 use axum::{
     Json, Router,
-    routing::{get, post},
+    routing::post,
 };
 use std::error::Error;
 use tower_http::cors::CorsLayer;
@@ -9,37 +9,73 @@ use tower_http::cors::CorsLayer;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let app = Router::new()
-        .route("/get_spans", get(get_spans))
+        .route("/get_spans", post(get_spans))
         .route("/add_span", post(add_span))
         .route("/log_in", post(log_in))
+        .route("/register", post(register))
         .layer(CorsLayer::permissive());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8081")
         .await
         .unwrap();
-
+    
     axum::serve(listener, app).await.unwrap();
 
     Ok(())
 }
 
+async fn register(Json(user): Json<UserSQL>) -> impl IntoResponse {
+    let connection = rusqlite::Connection::open("./users.db3").unwrap();
+    let sql = format!("SELECT COUNT (*) FROM users WHERE name = \"{}\"", user.name);
+    let mut statement = connection.prepare(&sql).unwrap();
+    let query = statement.query_one([], |row| row.get(0));
+    let result = match query {
+        Err(_) => {
+            -1
+        },
+        Ok(num) => num,
+    };
+
+    if result != 0 {
+        return Json(-1);
+    }
+
+    let mut statement = connection.prepare("SELECT MAX(id) FROM users").unwrap();
+    let query = statement.query_one([], |row| row.get(0));
+    let id = match query {
+        Err(rusqlite::Error::QueryReturnedMoreThanOneRow) => -1,
+        Err(rusqlite::Error::QueryReturnedNoRows) => -1,
+        Err(_) => -1,
+        Ok(num) => num,
+    };
+
+    if id == -1 {
+        return Json(-1);
+    }
+
+    let sql = r#"
+INSERT INTO users (
+    name,
+    id,
+    password
+    )
+VALUES (
+    ?1,
+    ?2,
+    ?3
+);"#;
+
+    connection
+        .execute(sql, [user.name, id.to_string(), user.password])
+        .unwrap();
+    Json(id)
+}
+
 async fn log_in(Json(user): Json<UserSQL>) -> impl IntoResponse {
     if !is_valid_login(user.name, user.password) {
-        return Json(-1);
+        return Json(false);
     } else {
-
-        let connection = rusqlite::Connection::open("./users.db3").unwrap();
-        let mut statement = connection.prepare("SELECT MAX(id) FROM users").unwrap();
-        let query = statement.query_one([], |row| row.get(0));
-        let id = match query {
-            Err(rusqlite::Error::QueryReturnedMoreThanOneRow) => -1,
-            Err(rusqlite::Error::QueryReturnedNoRows) => -1,
-            Err(_) => -1,
-            Ok(num) => num,
-        };
-        
-        Json(id)
-
+        Json(true)
     }
 }
 
@@ -65,7 +101,6 @@ fn is_valid_login(name: String, password: String) -> bool {
     }
 
     password == password_from_sql
-
 }
 
 async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
@@ -82,14 +117,16 @@ INSERT INTO spans (
     name,
     start_date,
     end_date,
-    duration
+    duration,
+    created_by
 )
 VALUES (
     ?1,
     ?2,
     ?3,
     ?4,
-    ?5
+    ?5,
+    ?6
 )"#;
 
     connection
@@ -101,6 +138,7 @@ VALUES (
                 &span.start_date,
                 &span.end_date,
                 &span.duration.to_string(),
+                &span.created_by.to_string()
             ],
         )
         .unwrap();
@@ -109,12 +147,14 @@ VALUES (
 }
 
 async fn get_spans(Json(user): Json<User>) -> impl IntoResponse {
+    println!("query by: {:?}", user);
     let con = rusqlite::Connection::open("./spans.db3").unwrap();
-    let sql = format!("SELECT id, name, start_date, end_date, duration FROM spans WHERE created_by = {}", user.id);
+    let sql = format!(
+        "SELECT id, name, start_date, end_date, duration FROM spans WHERE created_by = \"{}\"",
+        user.id
+    );
 
-    let mut stm = con
-        .prepare(&sql)
-        .unwrap();
+    let mut stm = con.prepare(&sql).unwrap();
     // get span data from db
     let rows = stm
         .query_map([], |row| {
@@ -159,7 +199,7 @@ impl Default for User {
         Self {
             id: 0,
             anonymous: true,
-            name: "guest".to_string()
+            name: "guest".to_string(),
         }
     }
 }
