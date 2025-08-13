@@ -44,9 +44,14 @@ fn Main() -> Element {
     //fill spans container from db
     let _ = use_resource(move || async move {
         if logged_in() && !user().anonymous {
+            info!("future");
+            info!("user: {:?}", user);
             let vec = get_spans(&user()).await;
-            calendar.set(Calendar::new(&vec));
-            spans.set(vec);
+            if !vec.is_empty() {
+                calendar.set(Calendar::new(&vec));
+                calendar.write().round_up();
+                spans.set(vec);
+            }
         }
     });
 
@@ -57,7 +62,7 @@ fn Main() -> Element {
             MenuComponent { toggle_add_form },
 
             if toggle_add_form() {
-                AddSpanComponent { start_date, end_date, name, toggle_add_form, spans, user }
+                AddSpanComponent { start_date, end_date, name, toggle_add_form, spans, user, calendar }
             }
             SpansComponent { spans }
             CalendarComponent { calendar }
@@ -141,15 +146,19 @@ fn LogInOrRegister(user: Signal<User>, logged_in: Signal<bool>) -> Element {
 
                     let potential_user = User::new(name(), password());
 
-                    let log_in_result = UserSQL::validate(UserSQL::new(potential_user)).await;
+                    let log_in_result = UserSQL::validate(UserSQL::new(&potential_user)).await;
 
-                    if log_in_result {
-                        let write = user.write();
-                        let mut deref = write;
-                        deref.anonymous = false;
-                        logged_in.set(true);
-                    } else {
-                        toggle_log_in_error.set(true);
+                    match log_in_result {
+                        Some(id) => {
+                            let mut deref = user.write();
+                            //let mut deref = write;
+                            deref.anonymous = false;
+                            deref.name = potential_user.name;
+                            deref.id = Some(id);
+                            logged_in.set(true);
+                        },
+                    
+                        None => toggle_log_in_error.set(true),
                     }
 
                 },
@@ -160,7 +169,7 @@ fn LogInOrRegister(user: Signal<User>, logged_in: Signal<bool>) -> Element {
                 onclick: move |_| async move {
 
                     let potential_user = User::new(name(), password());
-                    let register_result = UserSQL::register(UserSQL::new(potential_user)).await;
+                    let register_result = UserSQL::register(UserSQL::new(&potential_user)).await;
 
                     info!("register result: {:?}", register_result);
 
@@ -192,6 +201,7 @@ fn AddSpanComponent(
     toggle_add_form: Signal<bool>,
     spans: Signal<Vec<Span>>,
     user: Signal<User>,
+    calendar: Signal<Calendar>,
 ) -> Element {
     let mut toggle_error = use_signal(|| false);
 
@@ -237,11 +247,12 @@ fn AddSpanComponent(
                             end_date.set(start_date());
                             start_date.set(temp);
                         }
-
+                        info!("adding by {:?}", user);
                         let add_result = add_span(start_date(), end_date(), name(), &user()).await;
 
                         match add_result {
                             Some(span) => {
+                                calendar.write().add_span(&span);
                                 spans.write().push(span);
                                 toggle_error.set(false);
                             }
@@ -391,25 +402,25 @@ async fn add_span(start_date: String, end_date: String, name: String, user: &Use
 }
 
 async fn send_to_server(span: &Span) -> u64 {
+    info!("span: {:?}", span);
     let client = reqwest::Client::new();
 
-    let id: u64 = client
+    let i: u64 = client
         .post("http://127.0.0.1:8081/add_span")
         .json(&span)
         .send()
         .await
-        // request to add span to db
         .unwrap()
+        // request to add span to db
         .json()
         .await
         .unwrap();
     // get id of added span as a response
-
-    id
+    info!("id will be: {}", i);
+    i
 }
 
 async fn get_spans(user: &User) -> Vec<Span> {
-    info!("query by: {:?}", user);
     //get all spans from db on first launch of page
     reqwest::Client::new()
         .post("http://127.0.0.1:8081/get_spans")
@@ -469,10 +480,10 @@ pub struct UserSQL {
 }
 
 impl UserSQL {
-    fn new(user: User) -> Self {
+    fn new(user: &User) -> Self {
         Self {
-            name: user.name,
-            password: user.password.unwrap(),
+            name: user.name.clone(),
+            password: user.password.clone().unwrap(),
         }
     }
 
@@ -495,9 +506,9 @@ impl UserSQL {
         }
     }
 
-    async fn validate(user: UserSQL) -> bool {
+    async fn validate(user: UserSQL) -> Option<u64> {
         // send name and supposed password and get log_in result
-        let returned = reqwest::Client::new()
+        let returned: i32 = reqwest::Client::new()
             .post("http://127.0.0.1:8081/log_in")
             .json(&user)
             .send()
@@ -507,7 +518,12 @@ impl UserSQL {
             .await
             .unwrap();
 
-        returned
+        if returned == -1 {
+            return None
+        } else {
+            return Some(returned as u64)
+        }
+        
     }
 }
 
@@ -592,15 +608,31 @@ impl Calendar {
         days.sort();
         days.dedup();
 
+        for day in days.iter_mut() {
+            let spans = spans
+                .iter()
+                .filter(|span| {
+                    day.date >= parse_date(&span.start_date)
+                        && day.date <= parse_date(&span.end_date)
+                })
+                .collect::<Vec<Span>>();
+            day.included_in = Some(spans);
+        }
+
+        Self { days }
+    }
+
+    fn round_up(&mut self) {
+
         let month_code: Vec<i32> = vec![0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5];
         let leap_year_month_code: Vec<i32> = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
         let weekdays = vec![6, 0, 1, 2, 3, 4, 5];
         let year = Local::now().year();
         let is_leap_year = (year % 4 == 0 || year % 400 == 0) && year % 100 != 0;
         //curent day of month
-        let day0 = days.first().unwrap().date.day0() as i32 + 1;
+        let day0 = self.days.first().unwrap().date.day0() as i32 + 1;
         //current month
-        let month0 = days.first().unwrap().date.month0() as usize;
+        let month0 = self.days.first().unwrap().date.month0() as usize;
         //formula to get weekday from date
         let first_day = if !is_leap_year {
             (day0
@@ -620,10 +652,10 @@ impl Calendar {
 
         //make first day Monday
         for _i in 0..weekdays[first_day as usize] {
-            days.insert(
+            self.days.insert(
                 0,
                 Day {
-                    date: days
+                    date: self.days
                         .first()
                         .unwrap()
                         .date
@@ -635,10 +667,10 @@ impl Calendar {
             );
         }
         // make last day Sunday
-        if days.len() % 7 != 0 {
-            for _i in 0..days.len() % 7 + 1 {
-                days.push(Day {
-                    date: days
+        if self.days.len() % 7 != 0 {
+            for _i in 0..self.days.len() % 7 + 1 {
+                self.days.push(Day {
+                    date: self.days
                         .last()
                         .unwrap()
                         .date
@@ -650,19 +682,16 @@ impl Calendar {
             }
         }
 
-        for day in days.iter_mut() {
-            let spans = spans
-                .iter()
-                .filter(|span| {
-                    day.date >= parse_date(&span.start_date)
-                        && day.date <= parse_date(&span.end_date)
-                })
-                .collect::<Vec<Span>>();
-            day.included_in = Some(spans);
-        }
-
-        Self { days }
     }
+
+    fn add_span(&mut self, span: &Span) {
+        let days = span.get_days_vec();
+        self.days.extend_from_slice(&days);
+        self.days.sort();
+        self.days.dedup();
+        self.round_up();
+    }
+
 }
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]

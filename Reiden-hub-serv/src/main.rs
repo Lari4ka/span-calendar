@@ -64,22 +64,29 @@ VALUES (
     ?2,
     ?3
 );"#;
-
+    println!("registered: {:?}, id: {}", user, id);
     connection
-        .execute(sql, [user.name, id.to_string(), user.password])
+        .execute(sql, [user.name, (id + 1).to_string(), user.password])
         .unwrap();
     Json(id)
 }
 
 async fn log_in(Json(user): Json<UserSQL>) -> impl IntoResponse {
-    if !is_valid_login(user.name, user.password) {
-        return Json(false);
+    if !is_valid_login(&user.name, &user.password) {
+        return Json(-1);
     } else {
-        Json(true)
+        let connection = rusqlite::Connection::open("./users.db3").unwrap();
+        let sql = format!("SELECT id FROM users WHERE name = \"{}\"", user.name);
+        let mut statement = connection.prepare(&sql).unwrap();
+        let query = statement.query_one([], |row| row.get(0));
+        match query {
+            Err(_) => return Json(-1),
+            Ok(id) => return Json(id),
+        }
     }
 }
 
-fn is_valid_login(name: String, password: String) -> bool {
+fn is_valid_login(name: &str, password: &str) -> bool {
     let connection = rusqlite::Connection::open("./users.db3").unwrap();
 
     let sql = format!(
@@ -104,12 +111,14 @@ fn is_valid_login(name: String, password: String) -> bool {
 }
 
 async fn add_span(Json(span): Json<Span>) -> impl IntoResponse {
+    println!("add: {:?}", span);
     let connection = rusqlite::Connection::open("./spans.db3").unwrap();
 
     let mut stmt = connection.prepare("SELECT MAX(id) FROM spans").unwrap();
 
     // get id of last span in db
     let id: u32 = stmt.query_one([], |row| row.get(0)).unwrap();
+    println!("id: {}", id);
 
     let sql = r#"
 INSERT INTO spans (
@@ -142,7 +151,7 @@ VALUES (
             ],
         )
         .unwrap();
-
+        println!("inserted");
     Json(id)
 }
 
@@ -150,7 +159,7 @@ async fn get_spans(Json(user): Json<User>) -> impl IntoResponse {
     println!("query by: {:?}", user);
     let con = rusqlite::Connection::open("./spans.db3").unwrap();
     let sql = format!(
-        "SELECT id, name, start_date, end_date, duration FROM spans WHERE created_by = \"{}\"",
+        "SELECT id, name, start_date, end_date, duration, created_by FROM spans WHERE created_by = \"{}\"",
         user.id
     );
 
@@ -174,6 +183,7 @@ async fn get_spans(Json(user): Json<User>) -> impl IntoResponse {
         let span = row.unwrap();
         spans.push(span);
     }
+    println!("users spans: {:?}", spans);
     Json(spans)
 }
 
@@ -209,12 +219,3 @@ pub struct UserSQL {
     name: String,
     password: String,
 }
-// генианальный план:
-// у сука юзер структа нет порноля
-// а в дб есть
-// и просто на попытке входа
-// брать в клиенте
-// юзеримя и порноль
-// отправлять на сервер
-// брать порноль из дб по юзеримя
-// и если порноли не совпадают то слать нахуй
