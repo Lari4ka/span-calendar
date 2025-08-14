@@ -28,14 +28,9 @@ fn App() -> Element {
 fn Main() -> Element {
     //user
     let user = use_signal(User::default);
-    let logged_in = use_signal(|| false);
+
     //togle add span menu
     let toggle_add_form = use_signal(|| false);
-
-    //span data containers
-    let start_date = use_signal(String::new);
-    let end_date = use_signal(String::new);
-    let name = use_signal(String::new);
 
     //spans container
     let mut spans = use_signal(Vec::<Span>::new);
@@ -43,7 +38,7 @@ fn Main() -> Element {
 
     //fill spans container from db
     let _ = use_resource(move || async move {
-        if logged_in() && !user().anonymous {
+        if !user().anonymous {
             info!("future");
             info!("user: {:?}", user);
             let vec = get_spans(&user()).await;
@@ -57,12 +52,12 @@ fn Main() -> Element {
 
     rsx! {
         CurrentTimeComponent {  }
-        if !logged_in() { LogInOrRegister { user, logged_in } }
+        if user().anonymous { LogInOrRegister { user } }
         else {
             MenuComponent { toggle_add_form },
 
             if toggle_add_form() {
-                AddSpanComponent { start_date, end_date, name, toggle_add_form, spans, user, calendar }
+                AddSpanComponent { toggle_add_form, spans, user, calendar }
             }
             SpansComponent { spans }
             CalendarComponent { calendar }
@@ -114,7 +109,7 @@ fn CurrentTimeComponent() -> Element {
 }
 
 #[component]
-fn LogInOrRegister(user: Signal<User>, logged_in: Signal<bool>) -> Element {
+fn LogInOrRegister(user: Signal<User>) -> Element {
     let mut name = use_signal(String::new);
     let mut password = use_signal(String::new);
     let mut toggle_log_in_error = use_signal(|| false);
@@ -155,9 +150,8 @@ fn LogInOrRegister(user: Signal<User>, logged_in: Signal<bool>) -> Element {
                             deref.anonymous = false;
                             deref.name = potential_user.name;
                             deref.id = Some(id);
-                            logged_in.set(true);
                         },
-                    
+
                         None => toggle_log_in_error.set(true),
                     }
 
@@ -177,7 +171,6 @@ fn LogInOrRegister(user: Signal<User>, logged_in: Signal<bool>) -> Element {
                         Some(id) => {
                             user().id = Some(id as u64);
                             user().anonymous = false;
-                            logged_in.set(true);
                             info!("registered: {:?}", user);
                         },
                         None => toggle_register_error.set(true),
@@ -195,15 +188,15 @@ fn LogInOrRegister(user: Signal<User>, logged_in: Signal<bool>) -> Element {
 //add span menu
 #[component]
 fn AddSpanComponent(
-    start_date: Signal<String>,
-    end_date: Signal<String>,
-    name: Signal<String>,
     toggle_add_form: Signal<bool>,
     spans: Signal<Vec<Span>>,
     user: Signal<User>,
     calendar: Signal<Calendar>,
 ) -> Element {
     let mut toggle_error = use_signal(|| false);
+    let mut start_date = use_signal(String::new);
+    let mut end_date = use_signal(String::new);
+    let mut name = use_signal(String::new);
 
     rsx! {
         main {
@@ -402,10 +395,7 @@ async fn add_span(start_date: String, end_date: String, name: String, user: &Use
 }
 
 async fn send_to_server(span: &Span) -> u64 {
-    info!("span: {:?}", span);
-    let client = reqwest::Client::new();
-
-    let i: u64 = client
+    reqwest::Client::new()
         .post("http://127.0.0.1:8081/add_span")
         .json(&span)
         .send()
@@ -414,10 +404,8 @@ async fn send_to_server(span: &Span) -> u64 {
         // request to add span to db
         .json()
         .await
-        .unwrap();
+        .unwrap()
     // get id of added span as a response
-    info!("id will be: {}", i);
-    i
 }
 
 async fn get_spans(user: &User) -> Vec<Span> {
@@ -436,9 +424,8 @@ async fn get_spans(user: &User) -> Vec<Span> {
 fn parse_date(date_str: &str) -> NaiveDate {
     match NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
         Ok(date) => return date,
-        Err(e) => {
-            info!("error: {:?}", e);
-            NaiveDate::parse_from_str("2000-10-10", "%Y-%m-%d").unwrap()
+        Err(_) => {
+            Local::now().date_naive()
         }
     }
 }
@@ -488,7 +475,6 @@ impl UserSQL {
     }
 
     async fn register(user: UserSQL) -> Option<i32> {
-        info!("about to be signed up: {:?}", user);
         let returned = reqwest::Client::new()
             .post("http://127.0.0.1:8081/register")
             .json(&user)
@@ -519,11 +505,10 @@ impl UserSQL {
             .unwrap();
 
         if returned == -1 {
-            return None
+            return None;
         } else {
-            return Some(returned as u64)
+            return Some(returned as u64);
         }
-        
     }
 }
 
@@ -623,7 +608,6 @@ impl Calendar {
     }
 
     fn round_up(&mut self) {
-
         let month_code: Vec<i32> = vec![0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5];
         let leap_year_month_code: Vec<i32> = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
         let weekdays = vec![6, 0, 1, 2, 3, 4, 5];
@@ -655,7 +639,8 @@ impl Calendar {
             self.days.insert(
                 0,
                 Day {
-                    date: self.days
+                    date: self
+                        .days
                         .first()
                         .unwrap()
                         .date
@@ -670,7 +655,8 @@ impl Calendar {
         if self.days.len() % 7 != 0 {
             for _i in 0..self.days.len() % 7 + 1 {
                 self.days.push(Day {
-                    date: self.days
+                    date: self
+                        .days
                         .last()
                         .unwrap()
                         .date
@@ -681,7 +667,6 @@ impl Calendar {
                 });
             }
         }
-
     }
 
     fn add_span(&mut self, span: &Span) {
@@ -691,7 +676,6 @@ impl Calendar {
         self.days.dedup();
         self.round_up();
     }
-
 }
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
