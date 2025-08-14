@@ -1,14 +1,19 @@
+pub mod logic;
+pub mod span;
+pub mod time;
+
 use std::time::Duration;
 use std::vec;
 
 use chrono::naive::NaiveDate;
-use chrono::Datelike;
-use chrono::Days;
 use chrono::Local;
-use chrono::TimeDelta;
 use dioxus::launch;
 use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
+
+use crate::span::Span;
+use crate::time::Calendar;
+use crate::time::Day;
 
 const CSS: Asset = asset!("/assets/main.css");
 
@@ -27,7 +32,7 @@ fn App() -> Element {
 #[component]
 fn Main() -> Element {
     //user
-    let user = use_signal(User::default);
+    let user = use_signal(logic::User::default);
 
     //togle add span menu
     let toggle_add_form = use_signal(|| false);
@@ -39,9 +44,7 @@ fn Main() -> Element {
     //fill spans container from db
     let _ = use_resource(move || async move {
         if !user().anonymous {
-            info!("future");
-            info!("user: {:?}", user);
-            let vec = get_spans(&user()).await;
+            let vec = logic::get_spans(user()).await;
             if !vec.is_empty() {
                 calendar.set(Calendar::new(&vec));
                 calendar.write().round_up();
@@ -109,7 +112,7 @@ fn CurrentTimeComponent() -> Element {
 }
 
 #[component]
-fn LogInOrRegister(user: Signal<User>) -> Element {
+fn LogInOrRegister(user: Signal<logic::User>) -> Element {
     let mut name = use_signal(String::new);
     let mut password = use_signal(String::new);
     let mut toggle_log_in_error = use_signal(|| false);
@@ -139,14 +142,13 @@ fn LogInOrRegister(user: Signal<User>) -> Element {
                 id: "log_in_button",
                 onclick: move |_| async move {
 
-                    let potential_user = User::new(name(), password());
+                    let potential_user = logic::User::new(name(), password());
 
-                    let log_in_result = UserSQL::validate(UserSQL::new(&potential_user)).await;
+                    let log_in_result = logic::UserSQL::validate(logic::UserSQL::new(&potential_user)).await;
 
                     match log_in_result {
                         Some(id) => {
                             let mut deref = user.write();
-                            //let mut deref = write;
                             deref.anonymous = false;
                             deref.name = potential_user.name;
                             deref.id = Some(id);
@@ -162,16 +164,16 @@ fn LogInOrRegister(user: Signal<User>) -> Element {
                 id: "register_button",
                 onclick: move |_| async move {
 
-                    let potential_user = User::new(name(), password());
-                    let register_result = UserSQL::register(UserSQL::new(&potential_user)).await;
+                    let potential_user = logic::User::new(name(), password());
+                    let register_result = logic::UserSQL::register(logic::UserSQL::new(&potential_user)).await;
 
                     info!("register result: {:?}", register_result);
 
                     match register_result {
                         Some(id) => {
-                            user().id = Some(id as u64);
-                            user().anonymous = false;
-                            info!("registered: {:?}", user);
+                            let mut deref = user.write();
+                            deref.id = Some(id as u64);
+                            deref.anonymous = false;
                         },
                         None => toggle_register_error.set(true),
                     }
@@ -190,7 +192,7 @@ fn LogInOrRegister(user: Signal<User>) -> Element {
 fn AddSpanComponent(
     toggle_add_form: Signal<bool>,
     spans: Signal<Vec<Span>>,
-    user: Signal<User>,
+    user: Signal<logic::User>,
     calendar: Signal<Calendar>,
 ) -> Element {
     let mut toggle_error = use_signal(|| false);
@@ -241,7 +243,7 @@ fn AddSpanComponent(
                             start_date.set(temp);
                         }
                         info!("adding by {:?}", user);
-                        let add_result = add_span(start_date(), end_date(), name(), &user()).await;
+                        let add_result = logic::add_span(start_date(), end_date(), name(), user()).await;
 
                         match add_result {
                             Some(span) => {
@@ -369,318 +371,9 @@ fn CalendarComponent(calendar: Signal<Calendar>) -> Element {
     }
 }
 
-async fn add_span(start_date: String, end_date: String, name: String, user: &User) -> Option<Span> {
-    let parsed_start = parse_date(&start_date);
-    let parsed_end = parse_date(&end_date);
-
-    let duration = (parsed_end - parsed_start).num_days().abs();
-
-    if duration <= 1 {
-        return None;
-    }
-
-    let mut span = Span {
-        id: None,
-        name,
-        start_date,
-        end_date,
-        duration,
-        created_by: user.id.unwrap(),
-    };
-
-    let id = send_to_server(&span).await;
-
-    span.id = Some(id);
-    Some(span)
-}
-
-async fn send_to_server(span: &Span) -> u64 {
-    reqwest::Client::new()
-        .post("http://127.0.0.1:8081/add_span")
-        .json(&span)
-        .send()
-        .await
-        .unwrap()
-        // request to add span to db
-        .json()
-        .await
-        .unwrap()
-    // get id of added span as a response
-}
-
-async fn get_spans(user: &User) -> Vec<Span> {
-    //get all spans from db on first launch of page
-    reqwest::Client::new()
-        .post("http://127.0.0.1:8081/get_spans")
-        .json(user)
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap()
-}
-
 fn parse_date(date_str: &str) -> NaiveDate {
     match NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
         Ok(date) => return date,
-        Err(_) => {
-            Local::now().date_naive()
-        }
+        Err(_) => Local::now().date_naive(),
     }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct User {
-    id: Option<u64>,
-    anonymous: bool,
-    name: String,
-    password: Option<String>,
-}
-
-impl Default for User {
-    fn default() -> Self {
-        Self {
-            id: Some(0),
-            anonymous: true,
-            name: "guest".to_string(),
-            password: None,
-        }
-    }
-}
-
-impl User {
-    fn new(name: String, password: String) -> Self {
-        Self {
-            id: None,
-            anonymous: false,
-            name,
-            password: Some(password),
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct UserSQL {
-    name: String,
-    password: String,
-}
-
-impl UserSQL {
-    fn new(user: &User) -> Self {
-        Self {
-            name: user.name.clone(),
-            password: user.password.clone().unwrap(),
-        }
-    }
-
-    async fn register(user: UserSQL) -> Option<i32> {
-        let returned = reqwest::Client::new()
-            .post("http://127.0.0.1:8081/register")
-            .json(&user)
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
-
-        if returned >= 0 {
-            return Some(returned);
-        } else {
-            return None;
-        }
-    }
-
-    async fn validate(user: UserSQL) -> Option<u64> {
-        // send name and supposed password and get log_in result
-        let returned: i32 = reqwest::Client::new()
-            .post("http://127.0.0.1:8081/log_in")
-            .json(&user)
-            .send()
-            .await
-            .unwrap()
-            .json()
-            .await
-            .unwrap();
-
-        if returned == -1 {
-            return None;
-        } else {
-            return Some(returned as u64);
-        }
-    }
-}
-
-#[derive(
-    Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize,
-)]
-pub struct Span {
-    id: Option<u64>,
-    name: String,
-    start_date: String,
-    end_date: String,
-    duration: i64,
-    created_by: u64,
-}
-
-impl<'a> FromIterator<&'a Span> for Vec<Span> {
-    fn from_iter<T: for<'b> IntoIterator<Item = &'a Span>>(iter: T) -> Self {
-        iter.into_iter()
-            .map(|span| span.clone())
-            .collect::<Vec<Span>>()
-    }
-}
-
-impl Span {
-    fn get_dates(&self) -> (NaiveDate, NaiveDate) {
-        (parse_date(&self.start_date), parse_date(&self.end_date))
-    }
-    fn get_days_vec(&self) -> Vec<Day> {
-        let mut days = Vec::new();
-        let one_time_delta = TimeDelta::new(86_400, 0).unwrap();
-        let (start_date, end_date) = self.get_dates();
-
-        for i in 0..(end_date - start_date).num_days() + 1 {
-            days.push(Day {
-                date: start_date + (one_time_delta * i as i32),
-                passed: false,
-                included_in: None,
-            });
-        }
-        days.iter_mut()
-            .filter(|day| day.date <= Local::now().date_naive())
-            .for_each(|day| day.passed = true);
-        days
-    }
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct Calendar {
-    days: Vec<Day>,
-}
-
-impl Calendar {
-    fn default() -> Self {
-        Self { days: Vec::new() }
-    }
-
-    fn new(spans: &Vec<Span>) -> Calendar {
-        let mut days = Vec::new();
-
-        for span in spans {
-            days.extend_from_slice(&span.get_days_vec());
-        }
-        //fill gaps
-        for i in 1..days.len() {
-            if days[i].date != days[i - 1].date.checked_add_days(Days::new(1)).unwrap() {
-                let gap_length = (days[i].date - days[i - 1].date).num_days() as i32;
-                for j in 1..gap_length {
-                    let day = Day {
-                        date: days[i - 1]
-                            .date
-                            .checked_add_days(Days::new(j as u64))
-                            .unwrap(),
-                        passed: false,
-                        included_in: None,
-                    };
-                    //info!("DAY: {:?}", day);
-                    days.insert(i - 1 + j as usize, day);
-                }
-            }
-        }
-
-        days.sort();
-        days.dedup();
-
-        for day in days.iter_mut() {
-            let spans = spans
-                .iter()
-                .filter(|span| {
-                    day.date >= parse_date(&span.start_date)
-                        && day.date <= parse_date(&span.end_date)
-                })
-                .collect::<Vec<Span>>();
-            day.included_in = Some(spans);
-        }
-
-        Self { days }
-    }
-
-    fn round_up(&mut self) {
-        let month_code: Vec<i32> = vec![0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5];
-        let leap_year_month_code: Vec<i32> = vec![0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6];
-        let weekdays = vec![6, 0, 1, 2, 3, 4, 5];
-        let year = Local::now().year();
-        let is_leap_year = (year % 4 == 0 || year % 400 == 0) && year % 100 != 0;
-        //curent day of month
-        let day0 = self.days.first().unwrap().date.day0() as i32 + 1;
-        //current month
-        let month0 = self.days.first().unwrap().date.month0() as usize;
-        //formula to get weekday from date
-        let first_day = if !is_leap_year {
-            (day0
-                + month_code[month0]
-                + 5 * ((year - 1) % 4)
-                + 4 * ((year - 1) % 100)
-                + 6 * ((year - 1) % 400))
-                % 7
-        } else {
-            (day0
-                + leap_year_month_code[month0]
-                + 5 * ((year - 1) % 4)
-                + 4 * ((year - 1) % 100)
-                + 6 * ((year - 1) % 400))
-                % 7
-        };
-
-        //make first day Monday
-        for _i in 0..weekdays[first_day as usize] {
-            self.days.insert(
-                0,
-                Day {
-                    date: self
-                        .days
-                        .first()
-                        .unwrap()
-                        .date
-                        .checked_sub_days(Days::new(1))
-                        .unwrap(),
-                    passed: false,
-                    included_in: None,
-                },
-            );
-        }
-        // make last day Sunday
-        if self.days.len() % 7 != 0 {
-            for _i in 0..self.days.len() % 7 + 1 {
-                self.days.push(Day {
-                    date: self
-                        .days
-                        .last()
-                        .unwrap()
-                        .date
-                        .checked_add_days(Days::new(1))
-                        .unwrap(),
-                    passed: false,
-                    included_in: None,
-                });
-            }
-        }
-    }
-
-    fn add_span(&mut self, span: &Span) {
-        let days = span.get_days_vec();
-        self.days.extend_from_slice(&days);
-        self.days.sort();
-        self.days.dedup();
-        self.round_up();
-    }
-}
-
-#[derive(PartialOrd, Ord, PartialEq, Eq, Hash, Clone, Debug)]
-pub struct Day {
-    date: NaiveDate,
-    passed: bool,
-    included_in: Option<Vec<Span>>,
 }
