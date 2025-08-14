@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .route("/get_spans", post(get_spans))
         .route("/add_span", post(add_span))
         .route("/log_in", post(log_in))
-        .route("/register", post(register))
+        .route("/sign_up", post(sign_up))
         .layer(CorsLayer::permissive());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:8081")
@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn register(Json(user): Json<UserSQL>) -> impl IntoResponse {
+async fn sign_up(Json(user): Json<UserSQL>) -> impl IntoResponse {
     let connection = rusqlite::Connection::open("./users.db3").unwrap();
     let sql = format!("SELECT COUNT (*) FROM users WHERE name = \"{}\"", user.name);
     let mut statement = connection.prepare(&sql).unwrap();
@@ -64,7 +64,7 @@ VALUES (
     ?2,
     ?3
 );"#;
-    println!("registered: {:?}, id: {}", user, id);
+    println!("SignUped: {:?}, id: {}", user, id);
     connection
         .execute(sql, [user.name, (id + 1).to_string(), user.password])
         .unwrap();

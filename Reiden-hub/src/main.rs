@@ -55,7 +55,7 @@ fn Main() -> Element {
 
     rsx! {
         CurrentTimeComponent {  }
-        if user().anonymous { LogInOrRegister { user } }
+        if user().anonymous { LogInOrSignUp { user } }
         else {
             MenuComponent { toggle_add_form },
 
@@ -95,28 +95,33 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
 fn CurrentTimeComponent() -> Element {
     //timer
     let mut time = use_signal(|| Local::now());
+    let mut signal = use_signal(String::new);
+    let formatter = "%d-%m-%Y, %H:%M:%S, GMT%Z \n %A";
+    
     // asynchronously update timer
     use_future(move || async move {
         loop {
+            let formatted = format!("{}", Local::now().format(formatter));
+            signal.set(formatted);
             time.set(Local::now());
-            async_std::task::sleep(Duration::from_millis(1)).await;
+            async_std::task::sleep(Duration::from_millis(500)).await;
         }
     });
     //render timer
     rsx! {
         div {
             class: "time_container",
-            h1 { "time: {time.read()}" }
+            h1 { "time: {signal.read()}" }
         }
     }
 }
 
 #[component]
-fn LogInOrRegister(user: Signal<logic::User>) -> Element {
+fn LogInOrSignUp(user: Signal<logic::User>) -> Element {
     let mut name = use_signal(String::new);
     let mut password = use_signal(String::new);
     let mut toggle_log_in_error = use_signal(|| false);
-    let mut toggle_register_error = use_signal(|| false);
+    let mut toggle_SignUp_error = use_signal(|| false);
     rsx! {
         div {
             class: "user_inputs_container",
@@ -125,7 +130,6 @@ fn LogInOrRegister(user: Signal<logic::User>) -> Element {
                 type: "text",
                 placeholder: "name",
                 oninput: move |input| {
-                    info!("name: {}", input.value());
                     name.set(input.value());
                 }
             }
@@ -134,7 +138,6 @@ fn LogInOrRegister(user: Signal<logic::User>) -> Element {
                 type: "text",
                 placeholder: "password",
                 oninput: move |input| {
-                    info!("password: {}", input.value());
                     password.set(input.value());
                 }
             }
@@ -161,28 +164,26 @@ fn LogInOrRegister(user: Signal<logic::User>) -> Element {
                 "Log In",
             }
             button {
-                id: "register_button",
+                id: "sign_up_button",
                 onclick: move |_| async move {
 
                     let potential_user = logic::User::new(name(), password());
-                    let register_result = logic::UserSQL::register(logic::UserSQL::new(&potential_user)).await;
+                    let SignUp_result = logic::UserSQL::sign_up(logic::UserSQL::new(&potential_user)).await;
 
-                    info!("register result: {:?}", register_result);
-
-                    match register_result {
+                    match SignUp_result {
                         Some(id) => {
                             let mut deref = user.write();
                             deref.id = Some(id as u64);
                             deref.anonymous = false;
                         },
-                        None => toggle_register_error.set(true),
+                        None => toggle_SignUp_error.set(true),
                     }
                 },
-                "register",
+                "Sign Up",
             }
 
             if toggle_log_in_error() { LogInErrorComponent {} }
-            if toggle_register_error() { RegisterErrorComponent {} }
+            if toggle_SignUp_error() { SignUpErrorComponent {} }
         }
     }
 }
@@ -301,11 +302,11 @@ fn SpanErrorComponent() -> Element {
     }
 }
 #[component]
-fn RegisterErrorComponent() -> Element {
+fn SignUpErrorComponent() -> Element {
     rsx! {
         div {
-            id: "register_error_component",
-            "register error"
+            id: "SignUp_error_component",
+            "SignUp error"
         }
     }
 }

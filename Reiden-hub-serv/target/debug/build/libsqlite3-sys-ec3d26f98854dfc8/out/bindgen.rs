@@ -2088,13 +2088,13 @@ extern "C" {
     pub fn sqlite3_vfs_find(zVfsName: *const ::std::os::raw::c_char) -> *mut sqlite3_vfs;
 }
 extern "C" {
-    pub fn sqlite3_vfs_register(
+    pub fn sqlite3_vfs_SignUp(
         arg1: *mut sqlite3_vfs,
         makeDflt: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn sqlite3_vfs_unregister(arg1: *mut sqlite3_vfs) -> ::std::os::raw::c_int;
+    pub fn sqlite3_vfs_unSignUp(arg1: *mut sqlite3_vfs) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn sqlite3_mutex_alloc(arg1: ::std::os::raw::c_int) -> *mut sqlite3_mutex;

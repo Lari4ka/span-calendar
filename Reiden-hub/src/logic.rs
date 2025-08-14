@@ -44,9 +44,9 @@ impl UserSQL {
         }
     }
 
-    pub async fn register(user: UserSQL) -> Option<i32> {
+    pub async fn sign_up(user: UserSQL) -> Option<i32> {
         let returned = reqwest::Client::new()
-            .post("http://127.0.0.1:8081/register")
+            .post("http://127.0.0.1:8081/sign_up")
             .json(&user)
             .send()
             .await
