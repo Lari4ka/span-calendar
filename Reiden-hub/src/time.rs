@@ -39,7 +39,12 @@ impl Calendar {
 
         days.sort();
         days.dedup();
+        Self::mark_included(&mut days, spans);
 
+        Self { days }
+    }
+
+    pub fn mark_included(days: &mut Vec<Day>, spans: &Vec<Span>) {
         for day in days.iter_mut() {
             let spans = spans
                 .iter()
@@ -50,8 +55,6 @@ impl Calendar {
                 .collect::<Vec<Span>>();
             day.included_in = Some(spans);
         }
-
-        Self { days }
     }
 
     pub fn round_up(&mut self) {
@@ -99,20 +102,18 @@ impl Calendar {
             );
         }
         // make last day Sunday
-        if self.days.len() % 7 != 0 {
-            for _i in 0..self.days.len() % 7 + 1 {
-                self.days.push(Day {
-                    date: self
-                        .days
-                        .last()
-                        .unwrap()
-                        .date
-                        .checked_add_days(Days::new(1))
-                        .unwrap(),
-                    passed: false,
-                    included_in: None,
-                });
-            }
+        while self.days.len() % 7 != 0 {
+            self.days.push(Day {
+                date: self
+                    .days
+                    .last()
+                    .unwrap()
+                    .date
+                    .checked_add_days(Days::new(1))
+                    .unwrap(),
+                passed: false,
+                included_in: None,
+            });
         }
     }
 

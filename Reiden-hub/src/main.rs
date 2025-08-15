@@ -8,7 +8,6 @@ use std::vec;
 use chrono::naive::NaiveDate;
 use chrono::Local;
 use dioxus::launch;
-use dioxus::logger::tracing::info;
 use dioxus::prelude::*;
 
 use crate::span::Span;
@@ -45,6 +44,7 @@ fn Main() -> Element {
     let _ = use_resource(move || async move {
         if !user().anonymous {
             let vec = logic::get_spans(user()).await;
+
             if !vec.is_empty() {
                 calendar.set(Calendar::new(&vec));
                 calendar.write().round_up();
@@ -94,24 +94,22 @@ fn MenuComponent(toggle_add_form: Signal<bool>) -> Element {
 #[component]
 fn CurrentTimeComponent() -> Element {
     //timer
-    let mut time = use_signal(|| Local::now());
-    let mut signal = use_signal(String::new);
-    let formatter = "%d-%m-%Y, %H:%M:%S, GMT%Z \n %A";
-    
+    let mut time = use_signal(String::new);
+    let formatter = "%Y-%m-%d, %H:%M:%S, GMT%Z %A";
+
     // asynchronously update timer
     use_future(move || async move {
         loop {
             let formatted = format!("{}", Local::now().format(formatter));
-            signal.set(formatted);
-            time.set(Local::now());
-            async_std::task::sleep(Duration::from_millis(500)).await;
+            time.set(formatted);
+            async_std::task::sleep(Duration::from_millis(450)).await;
         }
     });
     //render timer
     rsx! {
         div {
             class: "time_container",
-            h1 { "time: {signal.read()}" }
+            h1 { "time: {time.read()}" }
         }
     }
 }
@@ -126,6 +124,7 @@ fn LogInOrSignUp(user: Signal<logic::User>) -> Element {
         div {
             class: "user_inputs_container",
             input {
+                class: "user_inputs_container",
                 id: "name_input",
                 type: "text",
                 placeholder: "name",
@@ -134,6 +133,7 @@ fn LogInOrSignUp(user: Signal<logic::User>) -> Element {
                 }
             }
             input {
+                class: "user_inputs_container",
                 id: "password_input",
                 type: "text",
                 placeholder: "password",
@@ -142,6 +142,7 @@ fn LogInOrSignUp(user: Signal<logic::User>) -> Element {
                 }
             }
             button {
+                class: "user_inputs_container",
                 id: "log_in_button",
                 onclick: move |_| async move {
 
@@ -164,6 +165,7 @@ fn LogInOrSignUp(user: Signal<logic::User>) -> Element {
                 "Log In",
             }
             button {
+                class: "user_inputs_container",
                 id: "sign_up_button",
                 onclick: move |_| async move {
 
@@ -243,12 +245,12 @@ fn AddSpanComponent(
                             end_date.set(start_date());
                             start_date.set(temp);
                         }
-                        info!("adding by {:?}", user);
                         let add_result = logic::add_span(start_date(), end_date(), name(), user()).await;
 
                         match add_result {
                             Some(span) => {
                                 calendar.write().add_span(&span);
+                                time::Calendar::mark_included(&mut calendar.write().days, &spans());
                                 spans.write().push(span);
                                 toggle_error.set(false);
                             }
@@ -293,30 +295,38 @@ fn SpansComponent(spans: Signal<Vec<Span>>) -> Element {
 }
 
 #[component]
-fn SpanErrorComponent() -> Element {
+fn WeekdaysHeader() -> Element {
     rsx! {
         div {
-            id: "span_error_component",
-            "span must be longer than one day"
-        }
-    }
-}
-#[component]
-fn SignUpErrorComponent() -> Element {
-    rsx! {
-        div {
-            id: "SignUp_error_component",
-            "SignUp error"
-        }
-    }
-}
-
-#[component]
-fn LogInErrorComponent() -> Element {
-    rsx! {
-        div {
-            id: "log_in_error_component",
-            "Log in error",
+            id: "weekday_header_container",
+            div {
+                class: "weekday_container",
+                "Monday",
+            }
+            div {
+                class: "weekday_container",
+                "Tuesday",
+            }
+            div {
+                class: "weekday_container",
+                "Wednesday",
+            }
+            div {
+                class: "weekday_container",
+                "Thursday",
+            }
+            div {
+                class: "weekday_container",
+                "Friday",
+            }
+            div {
+                class: "weekday_container",
+                "Saturday",
+            }
+            div {
+                class: "weekday_container",
+                "Sunday",
+            }
         }
     }
 }
@@ -325,6 +335,7 @@ fn LogInErrorComponent() -> Element {
 fn CalendarComponent(calendar: Signal<Calendar>) -> Element {
     let days: Vec<Day> = calendar().days;
     rsx! {
+        WeekdaysHeader {}
         for i in 0..days.len() / 7 {
             div {
                 class: "week_container",
@@ -368,6 +379,35 @@ fn CalendarComponent(calendar: Signal<Calendar>) -> Element {
                     }
                 }
             }
+        }
+    }
+}
+
+#[component]
+fn SpanErrorComponent() -> Element {
+    rsx! {
+        div {
+            id: "span_error_component",
+            "span must be longer than one day"
+        }
+    }
+}
+#[component]
+fn SignUpErrorComponent() -> Element {
+    rsx! {
+        div {
+            id: "SignUp_error_component",
+            "SignUp error"
+        }
+    }
+}
+
+#[component]
+fn LogInErrorComponent() -> Element {
+    rsx! {
+        div {
+            id: "log_in_error_component",
+            "Log in error",
         }
     }
 }
