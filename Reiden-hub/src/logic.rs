@@ -1,5 +1,7 @@
 use crate::parse_date;
 
+pub const URL: &'static str = "http:/span-calendar.net";
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct User {
     pub(crate) id: Option<u64>,
@@ -46,7 +48,7 @@ impl UserSQL {
 
     pub async fn sign_up(user: UserSQL) -> Option<i32> {
         let returned = reqwest::Client::new()
-            .post("http://127.0.0.1:8081/sign_up")
+            .post(format!("{}/sign_up", URL))
             .json(&user)
             .send()
             .await
@@ -65,7 +67,7 @@ impl UserSQL {
     pub async fn validate(user: UserSQL) -> Option<u64> {
         // send name and supposed password and get log_in result
         let returned: i32 = reqwest::Client::new()
-            .post("http://127.0.0.1:8081/log_in")
+            .post(format!("{}/log_in", URL))
             .json(&user)
             .send()
             .await
@@ -114,7 +116,7 @@ pub async fn add_span(
 
 pub async fn send_to_server(span: &crate::span::Span) -> u64 {
     reqwest::Client::new()
-        .post("http://127.0.0.1:8081/add_span")
+        .post(format!("{}/add_span", URL))
         .json(&span)
         .send()
         .await
@@ -129,7 +131,7 @@ pub async fn send_to_server(span: &crate::span::Span) -> u64 {
 pub async fn get_spans(user: User) -> Vec<crate::span::Span> {
     //get all spans from db on first launch of page
     reqwest::Client::new()
-        .post("http://127.0.0.1:8081/get_spans")
+        .post(format!("{}/get_spans", URL))
         .json(&user)
         .send()
         .await

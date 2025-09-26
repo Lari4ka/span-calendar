@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .route("/sign_up", post(sign_up))
         .layer(CorsLayer::permissive());
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8081")
+    let listener = tokio::net::TcpListener::bind("span-calendar.net")
         .await
         .unwrap();
     
